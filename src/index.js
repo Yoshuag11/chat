@@ -1,7 +1,8 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
-import { createStore } from 'redux';
+import { createStore, applyMiddleware } from 'redux';
+import createSagaMiddleware from 'redux-saga';
 import { Provider } from 'react-redux';
 import rootReducer from './reducers';
 // import 'jquery';
@@ -11,8 +12,15 @@ import * as serviceWorker from './serviceWorker';
 import 'bootstrap';
 // import 'bootstrap/dist/css/bootstrap.css';
 import './index.scss';
+import rootSaga from './sagas';
 
-const store = createStore( rootReducer );
+const sagaMiddleware = createSagaMiddleware();
+const store = createStore(
+	rootReducer,
+	applyMiddleware( sagaMiddleware )
+);
+
+sagaMiddleware.run( rootSaga );
 
 ReactDOM.render(
 	<Provider store={ store }>
