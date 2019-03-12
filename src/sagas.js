@@ -1,11 +1,18 @@
 import {
-	put, takeEvery, all, call, apply, delay, take, fork, race
+	put, takeEvery, all, call, apply, take, fork, race
 } from 'redux-saga/effects';
 import { eventChannel } from 'redux-saga';
 import {
-	authorize, ASYNC_AUTHORIZE, START_CHANNEL, SEND_MESSAGE, CREATE_MESSAGE
+	authorize,
+	ASYNC_AUTHORIZE,
+	START_CHANNEL,
+	SEND_MESSAGE,
+	CREATE_MESSAGE,
+	ASYNC_REGISTER
 } from './actions';
 import { createWebSocketConnection } from './socket';
+
+const host = 'http://localhost:3000';
 
 function createSocketChannel ( socket ) {
 	return eventChannel( emit => {
@@ -38,25 +45,40 @@ function createSocketChannel ( socket ) {
 	} );
 }
 
-function* asyncAuthorize ( { user, password } ) {
+function* asyncAuthorize ( payload ) {
 	const options = {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json'
 		},
-		body: JSON.stringify( { user, password } )
+		body: JSON.stringify( payload )
 	};
-	const resp = yield fetch( 'http://localhost:3000/authorize', options );
+	const resp = yield fetch( `${ host }/authorize`, options );
 
+	yield put( authorize( resp.ok ) );
+}
+function * asyncRegister ( { email, username, password } ) {
+	const options = {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json'
+		},
+		body: JSON.stringify( { email, username, password } )
+	};
+	const resp = yield fetch( `${ host }/register`, options );
+
+	// TODO: show error when user exists
 	yield put( authorize( resp.ok ) );
 }
 function* watchAuthorize () {
 	yield takeEvery( ASYNC_AUTHORIZE, asyncAuthorize );
 }
+function* watchRegister () {
+	yield takeEvery( ASYNC_REGISTER, asyncRegister );
+}
 function* watchSendMessage ( socket ) {
 	while ( true ) {
 		const payload = yield take( CREATE_MESSAGE );
-		console.log( 'payload from watchSendMessage', payload );
 		const message = payload && payload.message ? payload.message : '';
 
 		if ( message.length ) {
@@ -96,6 +118,7 @@ function* startStopChannel () {
 export default function* rootSaga () {
 	yield all( [
 		watchAuthorize(),
+		watchRegister(),
 		startStopChannel()
 	] );
 }

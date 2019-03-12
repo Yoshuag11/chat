@@ -1,5 +1,6 @@
 import { combineReducers } from 'redux';
-import { AUTHORIZE, SEND_MESSAGE } from '../actions'
+import { AUTHORIZE, SEND_MESSAGE, ADD_CONTACT } from '../actions'
+import Cookies from 'js-cookie';
 
 const initialMessages = [
 	{ message: 'Hello' },
@@ -8,7 +9,7 @@ const initialMessages = [
 	{ message: 'Messages' }
 ];
 
-const isAuthorized = ( state = false, action ) => {
+const isAuthorized = ( state = !!Cookies.get( 'isAuthorized'), action ) => {
 	switch ( action.type ) {
 		case AUTHORIZE:
 			return action.isAuthorized;
@@ -29,8 +30,20 @@ const messages = ( state = initialMessages, action ) => {
 			return state;
 	}
 };
+const contacts = ( state = [], action ) => {
+	switch ( action.type ) {
+		case ADD_CONTACT:
+			return [
+				...state,
+				action.contact
+			];
+		default:
+			return state;
+	}
+};
 
 export default combineReducers( {
 	isAuthorized,
-	messages
+	messages,
+	contacts
 })

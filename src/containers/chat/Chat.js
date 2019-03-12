@@ -16,7 +16,7 @@ class Chat extends React.Component {
 			<section
 				id='chat'
 				// className='col-md-9 ml-sm-auto col-lg-10 px-4'
-				className='col-md-9 ml-sm-auto col-lg-10 px-4'
+				className='col-sm-9 ml-sm-auto col-sm-10 px-4'
 			>
 				<StatusHeader />
 				{/* TODO: change this for ul tag */}
