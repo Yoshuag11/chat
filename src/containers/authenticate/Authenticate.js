@@ -7,42 +7,61 @@ let registerPassword;
 let registerEmail;
 
 class Authenticate extends React.Component {
+	constructor ( props ) {
+		super( props );
+		this.handleSubmitLogIn = this.handleSubmitLogIn.bind( this );
+		this.handleSubmitSignIn = this.handleSubmitSignIn.bind( this );
+	}
+	handleSubmitLogIn ( event ) {
+		event.preventDefault();
+
+		const payload = {
+			email: userEmail.value,
+			password: passwordInput.value
+		};
+
+		this.props.asyncAuthorize( payload );
+	}
+	handleSubmitSignIn ( event ) {
+		event.preventDefault();
+
+		const payload = {
+			username: registerUsername.value,
+			password: registerPassword.value,
+			email: registerEmail.value
+		};
+
+		this.props.asyncRegister( payload );
+	}
 	render () {
-		const { asyncAuthorize, asyncRegister } = this.props;
 		return (
 			<div className='container'>
 				<div className='row'>
 					<div className='col-sm'>
-						<form>
+						<form onSubmit={ this.handleSubmitLogIn }>
 							<fieldset>
 								<legend>Welcome</legend>
 								<div className='form-group'>
 									<label htmlFor='email'>Email</label>
 									<input
+										required
 										className='form-control'
 										ref={ input => userEmail = input }
-										type='text'
+										type='email'
 										id='email' />
 								</div>
 								<div className='form-group'>
 									<label htmlFor='password'>Password</label>
 									<input
+										required
 										className='form-control'
 										type='password'
 										ref={ input => passwordInput = input }
 										id='password' />
 								</div>
 								<button
-									type='button'
+									type='submit'
 									className='btn btn-primary'
-									onClick={ e => {
-										const payload = {
-											email: userEmail.value,
-											password: passwordInput.value
-										};
-
-										asyncAuthorize( payload );
-									} }
 								>
 									Log In
 								</button>
@@ -50,13 +69,14 @@ class Authenticate extends React.Component {
 						</form>
 					</div>
 					<div className='col-sm'>
-						<form>
+						<form onSubmit={ this.handleSubmitSignIn }>
 							<fieldset>
 								<legend>Not an user yet? Register now!</legend>
 								<div className='form-group'>
 									<label htmlFor='reg_email'>Email</label>
 									<input
-										type='text'
+										required
+										type='email'
 										id='reg_email'
 										className='form-control'
 										ref={ input => {
@@ -89,15 +109,6 @@ class Authenticate extends React.Component {
 								<button
 									type='button'
 									className='btn btn-dark'
-									onClick={ e => {
-										const payload = {
-											username: registerUsername.value,
-											password: registerPassword.value,
-											email: registerEmail.value
-										};
-
-										asyncRegister( payload );
-									} }
 								>
 									Sign In
 								</button>

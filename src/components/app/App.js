@@ -9,12 +9,18 @@ import {
 } from 'react-router-dom';
 import Authenticate from '../../containers/authenticate/Authenticate';
 import PropTypes from 'prop-types';
-import { asyncAuthorize, asyncRegister } from '../../actions';
+import { asyncAuthorize, asyncRegister, asyncFetchUser } from '../../actions';
+import { library } from '@fortawesome/fontawesome-svg-core';
+import { faUserPlus } from '@fortawesome/free-solid-svg-icons';
+import { fab } from '@fortawesome/free-brands-svg-icons';
+import Modal from '../modal/Modal';
+
+library.add( faUserPlus, fab );
 
 class App extends Component {
 	render() {
 		const {
-			isAuthorized, asyncAuthorize, asyncRegister
+			user, asyncAuthorize, asyncRegister, isAuthorized
 		} = this.props;
 		return (
 			<Router>
@@ -22,7 +28,7 @@ class App extends Component {
 					<Route
 						path='/authenticate'
 						render={ props => {
-							if ( isAuthorized ) {
+							if ( user ) {
 								return <Redirect to='/' />;
 							}
 							return (
@@ -33,20 +39,36 @@ class App extends Component {
 						} }
 					/>
 					<Route
-						exact
 						path='/'
 						render={ props => {
-							if ( isAuthorized ) {
+							if ( !isAuthorized ) {
+								return <Redirect to='/authenticate' />;
+							} else if ( user ) {
 								return (
 									<div className='container-fluid'>
 										<div className='row'>
+											<Chat>
+												<Route path='/add_contact' component={ Modal } />
+											</Chat>
 											<Sidebar />
-											<Chat />
 										</div>
 									</div>
 								);
 							} else {
-								return <Redirect to='/authenticate' />;
+								return (
+									<div className='text-center'>
+										<div
+											className='spinner-border text-primary'
+											style={ {
+												width: '10rem',
+												height: '10rem'
+											} }
+											role='status'
+										>
+											<span className='sr-only'>Loading...</span>
+										</div>
+									</div>
+								);
 							}
 						} }
 					/>
@@ -77,16 +99,32 @@ class App extends Component {
 App.propTypes = {
 	isAuthorized: PropTypes.bool.isRequired,
 	asyncAuthorize: PropTypes.func.isRequired,
-	asyncRegister: PropTypes.func.isRequired
+	asyncRegister: PropTypes.func.isRequired,
+	asyncFetchUser: PropTypes.func.isRequired,
+	user: ( props, propName, componentName ) => {
+		 const data = props[ propName ];
+
+		if ( data === undefined ) {
+			return new Error( `Undefined ${ propName } is not allowed` );
+		}
+		if ( data === null ) {
+			return;
+		}
+		if ( data.toString() !== '[object Object]'  ) {
+			return new Error( `${ propName } must be an object` );
+		}
+	}
 };
 
 const mapStateToProps = state => ( {
-	isAuthorized: state.isAuthorized
+	isAuthorized: state.isAuthorized,
+	user: state.user
 } );
 export default connect(
 	mapStateToProps,
 	{
 		asyncAuthorize,
-		asyncRegister
+		asyncRegister,
+		asyncFetchUser
 	}
 )( App );

@@ -13,6 +13,7 @@ import 'bootstrap';
 // import 'bootstrap/dist/css/bootstrap.css';
 import './index.scss';
 import rootSaga from './sagas';
+import { asyncFetchUser } from './actions'
 
 const sagaMiddleware = createSagaMiddleware();
 const store = createStore(
@@ -21,6 +22,8 @@ const store = createStore(
 );
 
 sagaMiddleware.run( rootSaga );
+
+store.dispatch( asyncFetchUser() );
 
 ReactDOM.render(
 	<Provider store={ store }>

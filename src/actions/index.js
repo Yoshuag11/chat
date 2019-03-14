@@ -7,6 +7,9 @@ export const START_CHANNEL = 'START_CHANNEL';
 export const CREATE_MESSAGE = 'CREATE_MESSAGE';
 export const ADD_CONTACT = 'ADD_CONTACT';
 export const ASYNC_REGISTER = 'ASYNC_REGISTER';
+export const SET_USER = 'SET_USER';
+export const ASYNC_FETCH_USER = 'ASYNC_FETCH_USER';
+export const ASYNC_REQUEST = 'ASYNC_REQUEST';
 
 const action = (type, payload = {}) => ( { type, ...payload } );
 
@@ -15,11 +18,14 @@ export const authorize = isAuthorized => action( AUTHORIZE, { isAuthorized } );
 export const login = ( username, password ) =>
 	( { type: AUTHORIZE, username, password } );
 export const asyncAuthorize =
-	( { username = '', password = ''} = {} ) =>
-		action( ASYNC_AUTHORIZE, { username, password } );
+	( { email, password } = {} ) =>
+		action( ASYNC_AUTHORIZE, { email, password } );
 export const startChannel = () => action( START_CHANNEL );
 export const createMessage = message => action( CREATE_MESSAGE, { message } );
 export const addContact = contact => action( ADD_CONTACT, { contact } );
 export const asyncRegister =
-	( { username = '', password = '', email= '' } = {} ) =>
+	( { username, password, email } = {} ) =>
 		action( ASYNC_REGISTER, { username, password, email } );
+export const setUser = user => action( SET_USER, { user } );
+export const asyncFetchUser = () => action( ASYNC_FETCH_USER );
+export const asyncRequest = to => action( ASYNC_REQUEST, { to } );

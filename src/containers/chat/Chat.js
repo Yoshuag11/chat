@@ -11,14 +11,18 @@ class Chat extends React.Component {
 		this.props.startChannel();
 	}
 	render () {
-		const { createMessage, messages } = this.props;
+		const {
+			createMessage, messages, username, children
+		} = this.props;
+		console.log( this.props );
 		return (
 			<section
 				id='chat'
 				// className='col-md-9 ml-sm-auto col-lg-10 px-4'
-				className='col-sm-9 ml-sm-auto col-sm-10 px-4'
+				className='col-sm-10 ml-sm-auto px-4'
 			>
-				<StatusHeader />
+				{ children }
+				<StatusHeader username={ username } />
 				{/* TODO: change this for ul tag */}
 				<div className='messages-container'>
 					{ messages.map( ( message, index ) => (
@@ -34,11 +38,13 @@ class Chat extends React.Component {
 Chat.propTypes = {
 	messages: PropTypes.array.isRequired,
 	createMessage: PropTypes.func.isRequired,
-	startChannel: PropTypes.func.isRequired
+	startChannel: PropTypes.func.isRequired,
+	username: PropTypes.string.isRequired
 };
 
 const mapStateToProps = state => ( {
-	messages: state.messages
+	messages: state.messages,
+	username: state.user.username
 } );
 
 export default connect(
