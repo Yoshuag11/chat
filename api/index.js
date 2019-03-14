@@ -25,7 +25,6 @@ const database = 'Chat';
 // Helper to check whether the user is logged in or not
 const userLoggedIn = async session => {
 	if ( 'userToken' in session  ) {
-		console.log( 'user has token!' );
 		const token = session.userToken;
 
 		// "jwt.verify" called synchronously throws an error if invalid signature
@@ -52,9 +51,10 @@ const userSchema = new mongoose.Schema( {
 const requestSchema = new mongoose.Schema( {
 	from: {
 		username: String,
-		id: mongoose.Schema.Types.ObjectId
+		id: mongoose.Schema.Types.ObjectId,
 	},
-	to: String // the username to send the notification
+	status: String,
+	to: String // the user's email the request is going to be sent to
 })
 const UserModel = mongoose.model( 'User', userSchema );
 const RequestModel = mongoose.model( 'Request', requestSchema );
@@ -191,8 +191,6 @@ db.once( 'open', function () {
 	app.post( '/request', async ( req, res ) => {
 		res.setHeader( 'Content-type', 'application/json' );
 
-		console.log( 'req.body', req.body );
-
 		const session = req.session;
 		const user = await userLoggedIn( session );
 
@@ -200,24 +198,22 @@ db.once( 'open', function () {
 			return responseError( res );
 		}
 
+		// TODO: validate that such user exists before going further
 		const { to } = req.body;
 		const request = new RequestModel( {
 			from: {
 				username: user.username,
-				id: user._id
+				id: user._id,
 			},
+			status: 'pending',
 			to
 		} );
-		console.log( 'user', user );
-		// console.log( 'req', req );
-		console.log( 'to', to);
-		console.log( request, 'request' );
 
 		try {
 			const reqst = await request.save();
-			console.log( reqst );
 
 			res.send( { message: 'request successfully sent' } );
+			io.emit( 'chat request', reqst );
 		} catch ( e ) {
 			console.log( 'e', e );
 			responseError( res, 'Request could not be fulfilled', 400 );
@@ -250,6 +246,23 @@ db.once( 'open', function () {
 			return responseError( res, message, code );
 		}
 	} );
+	app.get( '/requests', async ( req, res ) => {
+		res.setHeader( 'Content-type', 'application/json' );
+
+		const session = req.session;
+		const user = await userLoggedIn( session );
+
+		if ( !user ) {
+			return responseError( res );
+		}
+
+		const resp = await RequestModel.find( {
+			to: user.email,
+			status: 'pending'
+		} );
+
+		res.send( resp );
+	} );
 
 	const http = require( 'http' ).Server( app );
 	// const io = require( 'socket.io' )( http, {
@@ -263,15 +276,14 @@ db.once( 'open', function () {
 
 		socket = skt;
 
-		// io.emit( 'ping', { payload: { message: 'hello' } } );
-		io.emit( 'incoming message', { message: 'hello from socket.io' } );
+		io.emit( 'chat message', 'hello from socket.io' );
 
 		socket.on( 'disconnect', () => {
 			console.log( 'user disconnected' );
 		} );
 		socket.on( 'create message', data => {
 			console.log( 'data', data );
-			io.emit( 'incoming message', data );
+			io.emit( 'chat message', data );
 		} );
 	} );
 	http.listen(

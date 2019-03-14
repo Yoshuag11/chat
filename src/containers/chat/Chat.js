@@ -1,7 +1,9 @@
 import React from 'react';
 import StatusHeader from '../../components/status-header/StatusHeader';
 import MessageComposer from '../../components/message-composer/MessageComposer';
-import { createMessage, startChannel } from '../../actions';
+import {
+	createMessage, startChannel, asyncFetchRequests
+} from '../../actions';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import './Chat.css';
@@ -9,12 +11,13 @@ import './Chat.css';
 class Chat extends React.Component {
 	componentDidMount () {
 		this.props.startChannel();
+		this.props.asyncFetchRequests();
 	}
 	render () {
 		const {
-			createMessage, messages, username, children
+			createMessage, messages, username, children, requests, newRequest
 		} = this.props;
-		console.log( this.props );
+		console.log( 'this.props', this.props );
 		return (
 			<section
 				id='chat'
@@ -22,14 +25,17 @@ class Chat extends React.Component {
 				className='col-sm-10 ml-sm-auto px-4'
 			>
 				{ children }
-				<StatusHeader username={ username } />
-				{/* TODO: change this for ul tag */}
-				<div className='messages-container'>
+				<StatusHeader
+					newRequest={ newRequest}
+					username={ username }
+					requests={ requests }
+				/>
+				<ul className='messages-container'>
 					{ messages.map( ( message, index ) => (
-						<div key={ index }>{ message.message }</div>
+						<li key={ index }>{ message.message }</li>
 					) ) }
-				</div>
-				<MessageComposer onChange={ createMessage } />
+				</ul>
+				<MessageComposer createMessage={ createMessage } />
 			</section>
 		);
 	}
@@ -39,18 +45,24 @@ Chat.propTypes = {
 	messages: PropTypes.array.isRequired,
 	createMessage: PropTypes.func.isRequired,
 	startChannel: PropTypes.func.isRequired,
-	username: PropTypes.string.isRequired
+	username: PropTypes.string.isRequired,
+	asyncFetchRequests: PropTypes.func.isRequired,
+	requests: PropTypes.array.isRequired,
+	newRequest: PropTypes.bool.isRequired
 };
 
 const mapStateToProps = state => ( {
 	messages: state.messages,
-	username: state.user.username
+	username: state.user.username,
+	requests: state.requests,
+	newRequest: state.newRequest
 } );
 
 export default connect(
 	mapStateToProps,
 	{
 		createMessage,
-		startChannel
+		startChannel,
+		asyncFetchRequests
 	}
 )( Chat );

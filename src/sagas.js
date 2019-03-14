@@ -1,30 +1,42 @@
 import {
-	put, takeEvery, all, call, apply, take, fork, race
+	put, takeEvery, all, call, apply, take, fork, race, select
 } from 'redux-saga/effects';
 import { eventChannel } from 'redux-saga';
 import {
 	authorize,
 	setUser,
+	getRequests,
+	newRequest,
+	sendMessage,
 	ASYNC_AUTHORIZE,
 	START_CHANNEL,
-	SEND_MESSAGE,
 	CREATE_MESSAGE,
 	ASYNC_REGISTER,
 	ASYNC_FETCH_USER,
-	ASYNC_REQUEST
+	ASYNC_REQUEST,
+	ASYNC_FETCH_REQUESTS
 } from './actions';
 import { createWebSocketConnection } from './socket';
 
-const host = 'http://localhost:3000';
+const apiHost = 'http://localhost:3000';
 
-function createSocketChannel ( socket ) {
+function* createSocketChannel ( socket ) {
+	const getUser = state => state.user;
+	const user = yield select( getUser );
 	return eventChannel( emit => {
-		const handler = data => {
-			console.log( 'event detected within the token channel' );
-			console.log( 'data', data );
+		const requestHandler = function ( request ) {
 
-			if ( data ) {
-				emit( data );
+			if ( request.to === user.email ) {
+				console.log( 'about to send the request' );
+				emit( newRequest( request ) );
+			}
+		};
+		const messageHandler = message => {
+			console.log( 'event detected within the token channel' );
+			console.log( 'message', message );
+
+			if ( message ) {
+				emit( sendMessage( message ) );
 			}
 		};
 		const errorHandler = errorEvent => {
@@ -36,30 +48,33 @@ function createSocketChannel ( socket ) {
 		};
 
 		// set up the subscription
-		socket.on( 'incoming message', handler );
+		socket.on( 'chat message', messageHandler );
+		socket.on( 'chat request', requestHandler );
 
 		// the subscriber must return an unsubscribe function
 		// this will be invoked when the saga calls `channel.close` method
 		const unsubscribe = () => {
-			socket.off( 'incoming message', handler );
+			socket.off( 'chat message', messageHandler );
+			socket.off( 'chat request', requestHandler );
 			socket.off( 'error', errorHandler );
 		};
 		return unsubscribe;
 	} );
 }
 
+function* sendRequest ( path = '', method = 'GET', payload = {} ) {
+	const options = { method };
+
+	if ( method === 'POST' ) {
+		options.headers = { 'Content-Type': 'application/json' };
+		options.body = JSON.stringify( payload );
+	}
+	return yield fetch( `${ apiHost }/${ path }`, options );
+}
 function* asyncAuthorize ( { email, password } ) {
-	const options = {
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json'
-		},
-		body: JSON.stringify( { email, password } )
-	};
-	console.log( { email, password } );
-	let user;
-	const resp = yield fetch( `${ host }/authorize`, options );
+	const resp = yield sendRequest( 'authorize', 'POST', { email, password } );
 	const responseOK = resp.ok;
+	let user;
 
 	if ( responseOK ) {
 		user = yield resp.json();
@@ -71,11 +86,7 @@ function* asyncAuthorize ( { email, password } ) {
 	yield put( setUser( user ) );
 }
 function* fetchUser () {
-	console.log( 'fetchUser' );
-	const options = {
-		method: 'GET'
-	};
-	const resp = yield fetch( `${ host }/user`, options );
+	const resp = yield sendRequest( 'user' );
 	const responseOK = resp.ok;
 	let user;
 
@@ -88,6 +99,12 @@ function* fetchUser () {
 	yield put( authorize( responseOK ) );
 	yield put( setUser( user ) );
 }
+function* fetchRequests () {
+	const response = yield sendRequest( 'requests' );
+	const requests = yield response.json();
+
+	yield put( getRequests( requests ) );
+}
 function* asyncRegister ( { email, username, password } ) {
 	const options = {
 		method: 'POST',
@@ -96,7 +113,7 @@ function* asyncRegister ( { email, username, password } ) {
 		},
 		body: JSON.stringify( { email, username, password } )
 	};
-	const resp = yield fetch( `${ host }/register`, options );
+	const resp = yield fetch( `${ apiHost }/register`, options );
 
 	// TODO: show error when user exists
 	yield put( authorize( resp.ok ) );
@@ -109,7 +126,7 @@ function* request ( { to } ) {
 		},
 		body: JSON.stringify( { to } )
 	};
-	const resp = yield fetch( `${ host }/request`, options );
+	yield fetch( `${ apiHost }/request`, options );
 }
 function* watchAuthorize () {
 	yield takeEvery( ASYNC_AUTHORIZE, asyncAuthorize );
@@ -120,10 +137,11 @@ function* watchRegister () {
 function* watchSendMessage ( socket ) {
 	while ( true ) {
 		const payload = yield take( CREATE_MESSAGE );
+		console.log( 'payload', payload );
 		const message = payload && payload.message ? payload.message : '';
 
 		if ( message.length ) {
-			yield apply( socket, socket.emit, [ 'create message', payload ] );
+			yield apply( socket, socket.emit, [ 'create message', message ] );
 		}
 	}
 }
@@ -133,13 +151,15 @@ function* watchFetchUser () {
 function* watchRequest () {
 	yield takeEvery( ASYNC_REQUEST, request );
 }
+function* watchFetchRequest () {
+	yield takeEvery( ASYNC_FETCH_REQUESTS, fetchRequests );
+} 
 function* listenForMessages ( socketChannel ) {
 	while ( true ) {
 		const payload = yield take( socketChannel );
+
 		console.log( 'payload', payload );
-		// TODO: pass the whole payload to put so that it is a valid action
-		// i.e. it has the type key, along with the necessary information
-		yield put( { type: SEND_MESSAGE, message: payload.message } );
+		yield put( payload );
 	}
 }
 function* initializeSocketIO () {
@@ -168,6 +188,7 @@ export default function* rootSaga () {
 		watchRegister(),
 		watchFetchUser(),
 		watchRequest(),
+		watchFetchRequest(),
 		startStopChannel()
 	] );
 }

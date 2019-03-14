@@ -1,9 +1,10 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import './MessageComposer.css'
 
 let input;
 
-const MessageComposer = ( { onChange } ) => (
+const MessageComposer = ( { createMessage } ) => (
 	<div className='input-group message-composer'>
 		<input
 			className='form-control mt-auto'
@@ -11,7 +12,7 @@ const MessageComposer = ( { onChange } ) => (
 			placeholder='Write something...'
 			onKeyUp={ e => {
 				if ( e.key === 'Enter' ) {
-					onChange( input.value.trim() );
+					createMessage( input.value.trim() );
 					input.value = '';
 				}
 			} }
@@ -22,7 +23,7 @@ const MessageComposer = ( { onChange } ) => (
 				type='button'
 				className='btn btn-primary'
 				onClick={ e => {
-					onChange( input.value.trim() );
+					createMessage( input.value.trim() );
 					input.value = '';
 				} }
 			>
@@ -31,5 +32,9 @@ const MessageComposer = ( { onChange } ) => (
 		</div>
 	</div>
 );
+
+MessageComposer.propTypes = {
+	createMessage: PropTypes.func.isRequired
+}
 
 export default MessageComposer;

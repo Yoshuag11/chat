@@ -1,4 +1,5 @@
 .messages-container {
 	height: 550px;
 	overflow-y: auto;
+	list-style-type: none;
 }

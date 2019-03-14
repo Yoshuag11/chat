@@ -23,7 +23,9 @@ const store = createStore(
 
 sagaMiddleware.run( rootSaga );
 
-store.dispatch( asyncFetchUser() );
+if ( store.getState().isAuthorized ) {
+	store.dispatch( asyncFetchUser() );
+}
 
 ReactDOM.render(
 	<Provider store={ store }>

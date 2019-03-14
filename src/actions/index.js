@@ -10,6 +10,9 @@ export const ASYNC_REGISTER = 'ASYNC_REGISTER';
 export const SET_USER = 'SET_USER';
 export const ASYNC_FETCH_USER = 'ASYNC_FETCH_USER';
 export const ASYNC_REQUEST = 'ASYNC_REQUEST';
+export const ASYNC_FETCH_REQUESTS = 'ASYNC_FETCH_REQUESTS';
+export const GET_REQUESTS = 'GET_REQUESTS';
+export const NEW_REQUEST = 'NEW_REQUESTS';
 
 const action = (type, payload = {}) => ( { type, ...payload } );
 
@@ -29,3 +32,6 @@ export const asyncRegister =
 export const setUser = user => action( SET_USER, { user } );
 export const asyncFetchUser = () => action( ASYNC_FETCH_USER );
 export const asyncRequest = to => action( ASYNC_REQUEST, { to } );
+export const asyncFetchRequests = () => action( ASYNC_FETCH_REQUESTS );
+export const getRequests = requests => action( GET_REQUESTS, { requests } );
+export const newRequest = request => action( NEW_REQUEST, { request} );
