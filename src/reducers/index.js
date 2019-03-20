@@ -1,15 +1,22 @@
 import { combineReducers } from 'redux';
 import {
-	AUTHORIZE, SEND_MESSAGE, ADD_CONTACT, SET_USER, GET_REQUESTS, NEW_REQUEST
+	AUTHORIZE,
+	SEND_MESSAGE,
+	ADD_CONTACT,
+	SET_USER,
+	// GET_REQUESTS,
+	NEW_REQUEST,
+	SOCKET_STATUS,
+	LOAD_MESSAGES
 } from '../actions'
 import Cookies from 'js-cookie';
 
-const initialMessages = [
-	{ message: 'Hello' },
-	{ message: 'World' },
-	{ message: 'Testing' },
-	{ message: 'Messages' }
-];
+// const initialMessages = [
+// 	{ message: 'Hello' },
+// 	{ message: 'World' },
+// 	{ message: 'Testing' },
+// 	{ message: 'Messages' }
+// ];
 
 const isAuthorized = ( state = !!Cookies.get( 'isAuthorized'), action ) => {
 	switch ( action.type ) {
@@ -19,16 +26,19 @@ const isAuthorized = ( state = !!Cookies.get( 'isAuthorized'), action ) => {
 			return state;
 	}
 };
-const messages = ( state = initialMessages, action ) => {
+const messages = ( state = [], action ) => {
 	switch ( action.type ) {
 		case SEND_MESSAGE:
 			console.log( 'action', action );
 			return [
 				...state,
-				{
-					message: action.message
-				}
+				action.message
+				// {
+				// 	message: action.message
+				// }
 			];
+		case LOAD_MESSAGES:
+			return action.messages;
 		default:
 			return state;
 	}
@@ -52,20 +62,28 @@ export const user = ( state = null, action ) => {
 			return state;
 	}
 }
-const requests = ( state = [], action ) => {
+// const requests = ( state = [], action ) => {
+// 	switch ( action.type ) {
+// 		case GET_REQUESTS:
+// 			return action.requests;
+// 		case NEW_REQUEST:
+// 			return [ ...state, action.request ];
+// 		default:
+// 			return state;
+// 	}
+// }
+const newRequest = ( state = false, action ) => {
 	switch ( action.type ) {
-		case GET_REQUESTS:
-			return action.requests;
 		case NEW_REQUEST:
-			return [ ...state, action.request ];
+			return action.request;
 		default:
 			return state;
 	}
 }
-const newRequest = ( state = false, action ) => {
+const socket = ( state = false, action ) => {
 	switch ( action.type ) {
-		case NEW_REQUEST:
-			return true;
+		case SOCKET_STATUS:
+			return action.status;
 		default:
 			return state;
 	}
@@ -77,5 +95,6 @@ export default combineReducers( {
 	contacts,
 	user,
 	newRequest,
-	requests
+	socket
+	// requests
 } );

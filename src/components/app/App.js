@@ -4,30 +4,47 @@ import './App.css';
 import { connect } from 'react-redux';
 import Sidebar from '../sidebar/Sidebar';
 import Chat from '../../containers/chat/Chat';
+import Loading from '../loading/Loading';
+import ChatContent from '../../containers/chatcontent/ChatContent';
 import {
-	BrowserRouter as Router, Route, Switch, Redirect
+	BrowserRouter as Router,
+	Route,
+	Switch,
+	Redirect
 } from 'react-router-dom';
 import Authenticate from '../../containers/authenticate/Authenticate';
 import PropTypes from 'prop-types';
-import { asyncAuthorize, asyncRegister, asyncFetchUser } from '../../actions';
+import {
+	asyncAuthorize,
+	asyncRegister,
+	asyncFetchUser,
+	startChannel
+} from '../../actions';
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faUserPlus } from '@fortawesome/free-solid-svg-icons';
+import { faUserPlus, faCircle } from '@fortawesome/free-solid-svg-icons';
 import { fab } from '@fortawesome/free-brands-svg-icons';
-import Modal from '../modal/Modal';
+// import Modal from '../modal/Modal';
+// import Modal from '../../components/modal/Modal';
+// import Conversation from '../../containers/conversation/Conversation';
 
-library.add( faUserPlus, fab );
+library.add( faUserPlus, fab, faCircle );
 
 class App extends Component {
 	render() {
 		const {
-			user, asyncAuthorize, asyncRegister, isAuthorized
+			user,
+			asyncAuthorize,
+			asyncRegister,
+			isAuthorized
+			// startChannel,
+			// socket
 		} = this.props;
 		return (
 			<Router>
 				<Switch>
 					<Route
 						path='/authenticate'
-						render={ props => {
+						render={ () => {
 							if ( user ) {
 								return <Redirect to='/' />;
 							}
@@ -40,35 +57,63 @@ class App extends Component {
 					/>
 					<Route
 						path='/'
-						render={ props => {
+						render={ () => {
 							if ( !isAuthorized ) {
 								return <Redirect to='/authenticate' />;
-							} else if ( user ) {
+							} else if ( user/* && socket */ ) {
 								return (
 									<div className='container-fluid'>
 										<div className='row'>
 											<Chat>
-												<Route path='/add_contact' component={ Modal } />
+												<Route
+													path='/conversation/:id'
+													component={ ChatContent }
+													// render={ props => (
+													// 	// <Chat { ...props } />
+													// 	// <Chat { ...props }>
+													// 	// 	<Route
+													// 	// 		path='/add_contact'
+													// 	// 		component={ Modal }
+													// 	// 	/>
+													// 	// </Chat>
+													// ) }
+												/>
+												<Route
+													exact
+													path='/'
+													render={ () => (
+														<section
+															// className='col-sm-9 ml-sm-auto px-4'
+															className='col-sm-9 px-4'
+														>
+															<h1>Welcome</h1>
+														</section>
+													) }
+												/>
 											</Chat>
-											<Sidebar />
+											<Sidebar
+												username={ user.username }
+												contacts={ user.contacts }
+											/>
 										</div>
 									</div>
 								);
 							} else {
-								return (
-									<div className='text-center'>
-										<div
-											className='spinner-border text-primary'
-											style={ {
-												width: '10rem',
-												height: '10rem'
-											} }
-											role='status'
-										>
-											<span className='sr-only'>Loading...</span>
-										</div>
-									</div>
-								);
+								return <Loading />;
+								// return (
+								// 	<div className='text-center'>
+								// 		<div
+								// 			className='spinner-border text-primary'
+								// 			style={ {
+								// 				width: '10rem',
+								// 				height: '10rem'
+								// 			} }
+								// 			role='status'
+								// 		>
+								// 			<span className='sr-only'>Loading...</span>
+								// 		</div>
+								// 	</div>
+								// );
 							}
 						} }
 					/>
@@ -101,7 +146,9 @@ App.propTypes = {
 	asyncAuthorize: PropTypes.func.isRequired,
 	asyncRegister: PropTypes.func.isRequired,
 	asyncFetchUser: PropTypes.func.isRequired,
-	user: ( props, propName, componentName ) => {
+	// socket: PropTypes.bool.isRequired,
+	startChannel: PropTypes.func.isRequired,
+	user: ( props, propName/*, componentName */ ) => {
 		 const data = props[ propName ];
 
 		if ( data === undefined ) {
@@ -119,12 +166,14 @@ App.propTypes = {
 const mapStateToProps = state => ( {
 	isAuthorized: state.isAuthorized,
 	user: state.user
+	// socket: state.socket
 } );
 export default connect(
 	mapStateToProps,
 	{
 		asyncAuthorize,
 		asyncRegister,
-		asyncFetchUser
+		asyncFetchUser,
+		startChannel
 	}
 )( App );

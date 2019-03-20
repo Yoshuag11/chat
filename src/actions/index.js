@@ -10,9 +10,13 @@ export const ASYNC_REGISTER = 'ASYNC_REGISTER';
 export const SET_USER = 'SET_USER';
 export const ASYNC_FETCH_USER = 'ASYNC_FETCH_USER';
 export const ASYNC_REQUEST = 'ASYNC_REQUEST';
-export const ASYNC_FETCH_REQUESTS = 'ASYNC_FETCH_REQUESTS';
-export const GET_REQUESTS = 'GET_REQUESTS';
+// export const ASYNC_FETCH_REQUESTS = 'ASYNC_FETCH_REQUESTS';
+// export const GET_REQUESTS = 'GET_REQUESTS';
 export const NEW_REQUEST = 'NEW_REQUESTS';
+export const JOIN_CONVERSATION = 'JOIN_CONVERSATION';
+export const SOCKET_STATUS = 'SOCKET_STATUS';
+export const LOAD_MESSAGES = 'LOAD_MESSAGES';
+export const ASYNC_LOAD_MESSAGES = 'ASYNC_LOAD_MESSAGES';
 
 const action = (type, payload = {}) => ( { type, ...payload } );
 
@@ -24,7 +28,9 @@ export const asyncAuthorize =
 	( { email, password } = {} ) =>
 		action( ASYNC_AUTHORIZE, { email, password } );
 export const startChannel = () => action( START_CHANNEL );
-export const createMessage = message => action( CREATE_MESSAGE, { message } );
+export const createMessage =
+	( conversationId, message ) => action(
+		CREATE_MESSAGE, { conversationId, message } );
 export const addContact = contact => action( ADD_CONTACT, { contact } );
 export const asyncRegister =
 	( { username, password, email } = {} ) =>
@@ -32,6 +38,12 @@ export const asyncRegister =
 export const setUser = user => action( SET_USER, { user } );
 export const asyncFetchUser = () => action( ASYNC_FETCH_USER );
 export const asyncRequest = to => action( ASYNC_REQUEST, { to } );
-export const asyncFetchRequests = () => action( ASYNC_FETCH_REQUESTS );
-export const getRequests = requests => action( GET_REQUESTS, { requests } );
-export const newRequest = request => action( NEW_REQUEST, { request} );
+// export const asyncFetchRequests = () => action( ASYNC_FETCH_REQUESTS );
+// export const getRequests = requests => action( GET_REQUESTS, { requests } );
+export const newRequest = request => action( NEW_REQUEST, { request } );
+export const joinConversation =
+	conversationId => action( JOIN_CONVERSATION, { conversationId } );
+export const socketStatus = status => action( SOCKET_STATUS, { status } );
+export const loadMessages = messages => action( LOAD_MESSAGES, { messages } );
+export const asyncLoadMessages =
+	conversationId => action( ASYNC_LOAD_MESSAGES, { conversationId } );

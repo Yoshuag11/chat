@@ -4,7 +4,7 @@ import './MessageComposer.css'
 
 let input;
 
-const MessageComposer = ( { createMessage } ) => (
+const MessageComposer = ( { createMessage, conversationId } ) => (
 	<div className='input-group message-composer'>
 		<input
 			className='form-control mt-auto'
@@ -12,7 +12,7 @@ const MessageComposer = ( { createMessage } ) => (
 			placeholder='Write something...'
 			onKeyUp={ e => {
 				if ( e.key === 'Enter' ) {
-					createMessage( input.value.trim() );
+					createMessage( conversationId, input.value.trim() );
 					input.value = '';
 				}
 			} }
@@ -23,7 +23,7 @@ const MessageComposer = ( { createMessage } ) => (
 				type='button'
 				className='btn btn-primary'
 				onClick={ e => {
-					createMessage( input.value.trim() );
+					createMessage( conversationId, input.value.trim() );
 					input.value = '';
 				} }
 			>
@@ -34,7 +34,8 @@ const MessageComposer = ( { createMessage } ) => (
 );
 
 MessageComposer.propTypes = {
-	createMessage: PropTypes.func.isRequired
+	createMessage: PropTypes.func.isRequired,
+	conversationId: PropTypes.string.isRequired
 }
 
 export default MessageComposer;

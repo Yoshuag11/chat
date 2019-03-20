@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 
 let userEmail;
 let passwordInput;
@@ -23,6 +24,7 @@ class Authenticate extends React.Component {
 		this.props.asyncAuthorize( payload );
 	}
 	handleSubmitSignIn ( event ) {
+		console.log( 'handleSubmitSignIn function' );
 		event.preventDefault();
 
 		const payload = {
@@ -107,7 +109,7 @@ class Authenticate extends React.Component {
 									/>
 								</div>
 								<button
-									type='button'
+									type='submit'
 									className='btn btn-dark'
 								>
 									Sign In
@@ -120,5 +122,9 @@ class Authenticate extends React.Component {
 		);
 	}
 }
+Authenticate.propTypes = {
+	asyncRegister: PropTypes.func.isRequired,
+	asyncAuthorize: PropTypes.func.isRequired
+};
 
 export default Authenticate;

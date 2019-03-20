@@ -1,6 +1,6 @@
 import React from 'react';
 import { Modal, Button } from 'react-bootstrap';
-import { withRouter } from 'react-router-dom';
+// import { withRouter } from 'react-router-dom';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import { asyncRequest } from '../../actions';
@@ -10,17 +10,21 @@ class MyModal extends React.Component {
 		super( props, context );
 
 		this.handleSendRequest = this.handleSendRequest.bind( this );
-		this.handleClose = this.handleClose.bind( this );
+		// this.handleClose = this.handleClose.bind( this );
 	}
-	handleClose () {
-		this.props.history.push( '/' );
-	}
+	// handleClose () {
+	// 	this.props.history.push( '/' );
+	// }
 	handleSendRequest ( e ) {
 		this.props.asyncRequest( this.emailInput.value );
 	}
 	render () {
+		const {
+			handleModal,
+			showModal
+		} = this.props;
 		return (
-			<Modal show={ true } onHide={ this.handleClose }>
+			<Modal show={ showModal } onHide={ handleModal }>
 				<Modal.Header closeButton>
 					<Modal.Title>Add User</Modal.Title>
 				</Modal.Header>
@@ -40,7 +44,7 @@ class MyModal extends React.Component {
 				<Modal.Footer>
 					<Button
 						variant='secondary'
-						onClick={ this.handleClose }
+						onClick={ handleModal }
 					>
 						Cancel
 					</Button>
@@ -57,11 +61,17 @@ MyModal.propTypes = {
 	asyncRequest: PropTypes.func.isRequired
 };
 
-export default withRouter(
-	connect(
+export default connect(
 	null,
 	{
 		asyncRequest
 	}	
-	)( MyModal )
-);
+)( MyModal );
+// export default withRouter(
+// 	connect(
+// 	null,
+// 	{
+// 		asyncRequest
+// 	}	
+// 	)( MyModal )
+// );
