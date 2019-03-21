@@ -409,42 +409,73 @@ db.once( 'open', function () {
 
 	io.on( 'connection',  async ( socket ) => {
 		console.log( 'a user connected' );
-		// console.log( 'currentSession', currentSession );
+		// // console.log( 'currentSession', currentSession );
 
-		// Need to implement Redis session database to remove this kind of
-		// validations
-		if ( !currentSession ) {
-			return;
-		}
-		const user = await userLoggedIn( currentSession );
+		// // Need to implement Redis session database to remove this kind of
+		// // validations
+		// if ( !currentSession ) {
+		// 	return;
+		// }
 
-		if ( !user ) {
-			console.log( 'user', user );
-			return;
-		}
+		// const user = await userLoggedIn( currentSession );
 
-		// Get the only necessary data to store
-		const {
-			requestsSent, requestsReceived, contacts, __v, ...userData
-		} = user.toObject();
+		// if ( !user ) {
+		// 	console.log( 'user', user );
+		// 	return;
+		// }
 
-		connectedUsers.push( {
-			id: socket.id,
-			user: userData
+		// // Get the only necessary data to store
+		// const {
+		// 	requestsSent, requestsReceived, contacts, __v, ...userData
+		// } = user.toObject();
+
+		// connectedUsers.push( {
+		// 	id: socket.id,
+		// 	user: userData
+		// } );
+
+		// // socket = skt;
+
+		// // io.emit( 'chat user connected', user._id );
+		// // notify users about a new user connected
+		// socket.broadcast.emit( 'chat user connected', userData );
+		// // return an array of connected users' ids
+		// socket.emit(
+		// 	'chat users connected',
+		// 	connectedUsers.map( ( {user} ) => user )
+		// );
+		// // io.emit( 'chat message', 'hello from socket.io' );
+
+		socket.on( 'client join', async user => {
+			// TODO: implement security based on current user session
+			// TODO: implement error when user is not provided
+			if ( !user ) {
+				console.log( 'user', user );
+				return;
+			}
+
+			// Get the only necessary data to store
+			const {
+				requestsSent, requestsReceived, contacts, __v, ...userData
+			} = user;
+
+			connectedUsers.push( {
+				id: socket.id,
+				user: userData
+			} );
+
+			// socket = skt;
+
+			// io.emit( 'chat user connected', user._id );
+			// notify users about a new user connected
+			socket.broadcast.emit( 'chat user connected', userData );
+			// return an array of connected users' ids
+			socket.emit(
+				'chat users connected',
+				connectedUsers.map( ( {user} ) => user )
+			);
+			// io.emit( 'chat message', 'hello from socket.io' );
 		} );
-
-		// socket = skt;
-
-		// io.emit( 'chat user connected', user._id );
-		// notify users about a new user connected
-		socket.broadcast.emit( 'chat user connected', userData );
-		// return an array of connected users' ids
-		socket.emit(
-			'chat users connected',
-			connectedUsers.map( ( {user} ) => user )
-		);
-		// io.emit( 'chat message', 'hello from socket.io' );
-
 		socket.on( 'disconnect', () => {
 			console.log( 'user disconnected' );
 
@@ -491,7 +522,7 @@ db.once( 'open', function () {
 				.to( conversationId )
 				.emit( 'chat message', { ...message.toObject(), conversationId } );
 		} );
-		socket.on( 'client join', async ( conversationId, callback ) => {
+		socket.on( 'client join conversation', async ( conversationId, callback ) => {
 			console.log( 'trying to join chat' );
 			let user =
 				connectedUsers.find( user => user.id === socket.id );

@@ -23,12 +23,21 @@ class Conversation extends React.Component {
 			conversationId,
 			messages,
 		} = this.props;
+		console.log( 'this.props', this.props );
 		return (
 			<>
 				<ul className='messages-container'>
-					{ messages.map( ( message, index ) => (
-						<li key={ index }>{ message.message }</li>
-					) ) }
+					{ messages.map( ( message, index ) => {
+						const { conversationId: messageConversationId } = message;
+						if (
+							!messageConversationId ||
+							messageConversationId === conversationId
+						) {
+							return <li key={ index }>{ message.message }</li>;
+						} else {
+							return <></>;
+						}
+					 } ) }
 				</ul>
 				<MessageComposer
 					createMessage={ createMessage }
@@ -46,6 +55,7 @@ const mapStateToProps = state => ( {
 Conversation.propTypes = {
 	createMessage: PropTypes.func.isRequired,
 	messages: PropTypes.array.isRequired,
+	conversationId: PropTypes.string.isRequired
 	// joinConversation: PropTypes.func.isRequired
 }
 

@@ -21,13 +21,18 @@ import {
 	startChannel
 } from '../../actions';
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faUserPlus, faCircle } from '@fortawesome/free-solid-svg-icons';
+import {
+	faUserPlus,
+	faCircle,
+	faPlus
+} from '@fortawesome/free-solid-svg-icons';
 import { fab } from '@fortawesome/free-brands-svg-icons';
+import { nullOrObject } from '../../utils';
 // import Modal from '../modal/Modal';
 // import Modal from '../../components/modal/Modal';
 // import Conversation from '../../containers/conversation/Conversation';
 
-library.add( faUserPlus, fab, faCircle );
+library.add( faUserPlus, fab, faCircle, faPlus );
 
 class App extends Component {
 	render() {
@@ -35,7 +40,8 @@ class App extends Component {
 			user,
 			asyncAuthorize,
 			asyncRegister,
-			isAuthorized
+			isAuthorized,
+			// newMessage
 			// startChannel,
 			// socket
 		} = this.props;
@@ -57,7 +63,7 @@ class App extends Component {
 					/>
 					<Route
 						path='/'
-						render={ () => {
+						render={ props => {
 							if ( !isAuthorized ) {
 								return <Redirect to='/authenticate' />;
 							} else if ( user/* && socket */ ) {
@@ -91,9 +97,16 @@ class App extends Component {
 													) }
 												/>
 											</Chat>
-											<Sidebar
-												username={ user.username }
-												contacts={ user.contacts }
+											<Route
+												path='/conversation/:id'
+												children={ props => (
+													<Sidebar
+														{ ...props }
+														// newMessage={ newMessage }
+														username={ user.username }
+														contacts={ user.contacts }
+													/>
+												) }
 											/>
 										</div>
 									</div>
@@ -148,24 +161,14 @@ App.propTypes = {
 	asyncFetchUser: PropTypes.func.isRequired,
 	// socket: PropTypes.bool.isRequired,
 	startChannel: PropTypes.func.isRequired,
-	user: ( props, propName/*, componentName */ ) => {
-		 const data = props[ propName ];
-
-		if ( data === undefined ) {
-			return new Error( `Undefined ${ propName } is not allowed` );
-		}
-		if ( data === null ) {
-			return;
-		}
-		if ( data.toString() !== '[object Object]'  ) {
-			return new Error( `${ propName } must be an object` );
-		}
-	}
+	user: nullOrObject
+	// newMessage: nullOrObject
 };
 
 const mapStateToProps = state => ( {
 	isAuthorized: state.isAuthorized,
 	user: state.user
+	// newMessage: state.newMessage
 	// socket: state.socket
 } );
 export default connect(

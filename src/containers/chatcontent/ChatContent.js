@@ -6,7 +6,8 @@ import Conversation from '../conversation/Conversation';
 import Modal from '../../components/modal/Modal';
 import {
 	joinConversation,
-	asyncLoadMessages
+	asyncLoadMessages,
+	newMessageRead
 } from '../../actions';
 
 class ChatContent extends React.Component {
@@ -21,25 +22,31 @@ class ChatContent extends React.Component {
 		this.handleJoinChat = this.handleJoinChat.bind( this );
 	}
 	handleJoinChat () {
-		const conversationsJoined = this.state.conversationsJoined;
+		// const conversationsJoined = this.state.conversationsJoined;
 		const {
 			joinConversation,
 			asyncLoadMessages,
+			newMessageRead,
 			match: { params: { id: conversationId } }
 		} = this.props;
 
-		if (
-			!conversationsJoined.find(
-				conversation => conversation === conversationId )
-		) {
-			console.log( 'about to join' );
+		joinConversation( conversationId );
+		console.log( 'loading messages asynchronously' );
+		asyncLoadMessages( conversationId );
+		newMessageRead( conversationId );
+
+		// if (
+		// 	!conversationsJoined.find(
+		// 		conversation => conversation === conversationId )
+		// ) {
+		// 	console.log( 'about to join' );
 			joinConversation( conversationId );
-			console.log( 'loading messages asynchronously' );
-			asyncLoadMessages( conversationId );
-			this.setState( {
-				conversationsJoined: [ ...conversationsJoined, conversationId ]
-			} )
-		};
+			// console.log( 'loading messages asynchronously' );
+			// asyncLoadMessages( conversationId );
+		// 	this.setState( {
+		// 		conversationsJoined: [ ...conversationsJoined, conversationId ]
+		// 	} )
+		// };
 	}
 	componentDidUpdate () {
 		this.handleJoinChat();
@@ -86,7 +93,8 @@ ChatContent.propTypes = {
 	requests: PropTypes.array.isRequired,
 	newRequest: PropTypes.bool.isRequired,
 	joinConversation: PropTypes.func.isRequired,
-	asyncLoadMessages: PropTypes.func.isRequired
+	asyncLoadMessages: PropTypes.func.isRequired,
+	newMessageRead: PropTypes.func.isRequired
 };
 
 const mapStateToProps = state => ( {
@@ -99,6 +107,7 @@ export default connect(
 	mapStateToProps,
 	{
 		joinConversation,
-		asyncLoadMessages
+		asyncLoadMessages,
+		newMessageRead
 	}
 )( ChatContent );

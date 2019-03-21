@@ -9,6 +9,7 @@ import {
 	socketStatus,
 	newRequest,
 	sendMessage,
+	// newMessage,
 	loadMessages,
 	ASYNC_AUTHORIZE,
 	START_CHANNEL,
@@ -17,12 +18,15 @@ import {
 	ASYNC_FETCH_USER,
 	ASYNC_REQUEST,
 	JOIN_CONVERSATION,
-	ASYNC_LOAD_MESSAGES
+	ASYNC_LOAD_MESSAGES,
+	NEW_MESSAGE_READ
 	// ASYNC_FETCH_REQUESTS
 } from './actions';
 import { createWebSocketConnection } from './socket';
 
 const apiHost = 'http://localhost:3000';
+const getUser = state => state.user;
+let conversationsJoined = [];
 
 function createSocketChannel ( socket ) {
 	return eventChannel( emit => {
@@ -30,8 +34,9 @@ function createSocketChannel ( socket ) {
 			emit( { type: 'request', request } );
 		};
 		const messageHandler = message => {
-			console.log( 'message', message );
-			emit( sendMessage( message ) );
+			console.log( 'message received', message );
+			emit( { type: 'messageReceived', message } );
+			// emit( sendMessage( message ) );
 		};
 		const errorHandler = errorEvent => {
 			const reason = errorEvent.reason;
@@ -162,6 +167,31 @@ function* asyncRegister ( { email, username, password } ) {
 function* request ( { to } ) {
 	yield sendRequest( 'request', 'POST', { to } );
 }
+function* newMessageRead( { conversationId } ) {
+	console.log( 'newMessageRead', conversationId );
+	// TODO: add error when conversationId was not provided
+	const user = yield select( getUser );
+	const contact = user.contacts.find( contact =>
+		contact.conversationId === conversationId && contact.newMessage );
+
+	if ( contact) {
+		console.log( 'about to remove "new message" notification' );
+		const contacts = user.contacts.map( contact => {
+			if ( contact.conversationId === conversationId
+			) {
+				// create a copy of the contact
+				contact = { ...contact };
+	
+				delete contact.newMessage;
+			}
+			return contact;
+		} );
+
+		yield put( setUser( { ...user, contacts } ) );
+	}
+
+}
+// Watchers
 function* watchAuthorize () {
 	yield takeEvery( ASYNC_AUTHORIZE, asyncAuthorize );
 }
@@ -181,13 +211,29 @@ function* watchJoinConversation ( socket ) {
 	const callback = err => {
 		console.log( 'error:', err );
 	}
+
 	while ( true ) {
 		const payload = yield take( JOIN_CONVERSATION );
-		console.log( 'about to join conversation' );
-		console.log( 'socket', socket );
+		const conversationId = payload.conversationId;
 
-		yield apply( socket, socket.emit, [ 'client join', payload.conversationId, callback ] );
-		// yield apply( socket, socket.on, [ 'client join', payload.conversationId ] );
+		if (
+			!conversationsJoined.find(
+				conversation => conversation === conversationId )
+		) {
+			// console.log( 'loading messages asynchronously' );
+			// asyncLoadMessages( conversationId );
+			console.log( 'about to join conversation' );
+			console.log( 'socket', socket );
+
+			yield apply(
+				socket,
+				socket.emit,
+				[ 'client join conversation', conversationId, callback ]
+			);
+			// yield apply( socket, socket.on, [ 'client join', payload.conversationId ] );
+
+			conversationsJoined.push( conversationId );
+		};
 	}
 }
 function* watchFetchUser () {
@@ -199,12 +245,15 @@ function* watchRequest () {
 function* watchLoadMessages () {
 	yield takeEvery( ASYNC_LOAD_MESSAGES, fetchMessages );
 }
+function* watchNewMessageRead () {
+	yield takeEvery( NEW_MESSAGE_READ, newMessageRead );
+}
 // function* watchFetchRequest () {
 // 	yield takeEvery( ASYNC_FETCH_REQUESTS, fetchRequests );
 // }
 function* listenForMessages ( socketChannel ) {
 	// Helper to get user data from within the state
-	const getUser = state => state.user;
+	// const getUser = state => state.user;
 	let contacts;
 
 	while ( true ) {
@@ -229,19 +278,36 @@ function* listenForMessages ( socketChannel ) {
 				}
 				break;
 			case 'userConnected':
-				const userConnected = payload.user;
+				const userConnectedPayload = payload.user;
+				// check if the user connected is part of current user's contacts
+				const userConnected = user.contacts.find(
+					contact => contact.userId === userConnectedPayload._id
+				);
 
-				contacts = user.contacts.map( contact => {
-					if ( contact.userId === userConnected._id ) {
-						// Create a copy of the contact
-						contact = { ...contact };
+				if ( userConnected ) {
+					console.log( 'connected user is a contact!');
+					console.log( 'user connected full info', userConnected );
+					const conversationId = userConnected.conversationId;
 
-						contact.status = 'connected';
-					}
-					return contact;
-				} );
+					yield put( { type: JOIN_CONVERSATION, conversationId } );
 
-				yield put( setUser( { ...user, contacts } ) );
+					// When it comes to contacts, the real user's id is withing the
+					// property "userId" rather than "_id", since "_id" is the
+					// actual id of the sub-document, which can be useful in case of,
+					// for instance, delete a contact.
+					contacts = user.contacts.map( contact => {
+						if ( contact.userId === userConnected.userId ) {
+							// Create a copy of the contact to avoid modifying
+							// any existent user
+							contact = { ...contact };
+
+							contact.status = 'connected';
+						}
+						return contact;
+					} );
+
+					yield put( setUser( { ...user, contacts } ) );
+				}
 				break;
 			case 'connectedUsers':
 				console.log( 'payload', payload );
@@ -258,6 +324,15 @@ function* listenForMessages ( socketChannel ) {
 					}
 					return contact;
 				} );
+
+				for (let contact of contacts ) {
+					if ( contact.status ) {
+						const conversationId = contact.conversationId;
+
+						// Join to the chats so the user can interact with each contact
+						yield put( { type: JOIN_CONVERSATION, conversationId } );
+					}
+				}
 				yield put( setUser( { ...user, contacts } ) );
 				break;
 			case 'userDisconnected':
@@ -275,7 +350,28 @@ function* listenForMessages ( socketChannel ) {
 
 				yield put( setUser( { ...user, contacts } ) );
 				break;
+			case 'messageReceived':
+				const message = payload.message;
+
+				contacts = user.contacts.map( contact => {
+					if ( contact.conversationId === message.conversationId ) {
+						// Create a copy of the contact
+						contact = { ...contact };
+
+						contact.newMessage = true;
+					}
+					return contact;
+				} );
+				// console.log(
+				// 	'newMessage( payload.message )',
+				// 	newMessage( payload.message )
+				// );
+				yield put( sendMessage( payload.message ) );
+				// yield put( newMessage( payload.message ) );
+				yield put( setUser( { ...user, contacts } ) );
+				break;
 			default:
+				console.log( 'payload', payload );
 				yield put( payload );
 		}
 	}
@@ -283,6 +379,10 @@ function* listenForMessages ( socketChannel ) {
 function* initializeSocketIO () {
 	const socket = yield call( createWebSocketConnection );
 	const socketChannel = yield call( createSocketChannel, socket );
+	const { __v, contacts, requestsSent, requestsReceived, ...user } = yield select( getUser );
+
+	// explicitly connect user to the chat system
+	yield apply( socket, socket.emit, [ 'client join', user ] );
 
 	try {
 		// An error will cause the saga to jump to the catch block
@@ -313,6 +413,7 @@ export default function* rootSaga () {
 		watchRequest(),
 		// watchFetchRequest(),
 		watchLoadMessages(),
-		startStopChannel()
+		watchNewMessageRead(),
+		startStopChannel(),
 	] );
 }

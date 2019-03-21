@@ -17,10 +17,13 @@ export const JOIN_CONVERSATION = 'JOIN_CONVERSATION';
 export const SOCKET_STATUS = 'SOCKET_STATUS';
 export const LOAD_MESSAGES = 'LOAD_MESSAGES';
 export const ASYNC_LOAD_MESSAGES = 'ASYNC_LOAD_MESSAGES';
+// export const NEW_MESSAGE = 'NEW_MESSAGE';
+export const NEW_MESSAGE_READ = 'NEW_MESSAGE_READ';
 
 const action = (type, payload = {}) => ( { type, ...payload } );
 
 export const sendMessage = message => action( SEND_MESSAGE, { message } );
+// export const newMessage = message => action( NEW_MESSAGE, { message } );
 export const authorize = isAuthorized => action( AUTHORIZE, { isAuthorized } );
 export const login = ( username, password ) =>
 	( { type: AUTHORIZE, username, password } );
@@ -47,3 +50,5 @@ export const socketStatus = status => action( SOCKET_STATUS, { status } );
 export const loadMessages = messages => action( LOAD_MESSAGES, { messages } );
 export const asyncLoadMessages =
 	conversationId => action( ASYNC_LOAD_MESSAGES, { conversationId } );
+export const newMessageRead =
+	conversationId => action( NEW_MESSAGE_READ, { conversationId } );

@@ -21,6 +21,7 @@ const StatusHeader = ( { username, handleModal, newRequest, requests } ) => (
 			/>
 		</button>
 		<Link
+			// the "to" property here is doing nothing, it just 
 			to='/requests'
 			data-toggle='dropdown'
 			aria-haspopup='true'

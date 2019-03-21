@@ -2,6 +2,7 @@ import { combineReducers } from 'redux';
 import {
 	AUTHORIZE,
 	SEND_MESSAGE,
+	// NEW_MESSAGE,
 	ADD_CONTACT,
 	SET_USER,
 	// GET_REQUESTS,
@@ -29,13 +30,9 @@ const isAuthorized = ( state = !!Cookies.get( 'isAuthorized'), action ) => {
 const messages = ( state = [], action ) => {
 	switch ( action.type ) {
 		case SEND_MESSAGE:
-			console.log( 'action', action );
 			return [
 				...state,
 				action.message
-				// {
-				// 	message: action.message
-				// }
 			];
 		case LOAD_MESSAGES:
 			return action.messages;
@@ -87,7 +84,15 @@ const socket = ( state = false, action ) => {
 		default:
 			return state;
 	}
-}
+};
+// const newMessage = ( state = null, action ) => {
+// 	switch ( action.type ) {
+// 		case NEW_MESSAGE:
+// 			return action.message
+// 		default:
+// 			return state;
+// 	}
+// }
 
 export default combineReducers( {
 	isAuthorized,
@@ -95,6 +100,7 @@ export default combineReducers( {
 	contacts,
 	user,
 	newRequest,
+	// newMessage,
 	socket
 	// requests
 } );
