@@ -19,6 +19,7 @@ export const LOAD_MESSAGES = 'LOAD_MESSAGES';
 export const ASYNC_LOAD_MESSAGES = 'ASYNC_LOAD_MESSAGES';
 // export const NEW_MESSAGE = 'NEW_MESSAGE';
 export const NEW_MESSAGE_READ = 'NEW_MESSAGE_READ';
+export const CREATE_GROUP_CONVERSATION = 'CREATE_GROUP_CONVERSATION';
 
 const action = (type, payload = {}) => ( { type, ...payload } );
 
@@ -31,9 +32,7 @@ export const asyncAuthorize =
 	( { email, password } = {} ) =>
 		action( ASYNC_AUTHORIZE, { email, password } );
 export const startChannel = () => action( START_CHANNEL );
-export const createMessage =
-	( conversationId, message ) => action(
-		CREATE_MESSAGE, { conversationId, message } );
+export const createMessage = data => action( CREATE_MESSAGE, data );
 export const addContact = contact => action( ADD_CONTACT, { contact } );
 export const asyncRegister =
 	( { username, password, email } = {} ) =>
@@ -44,11 +43,11 @@ export const asyncRequest = to => action( ASYNC_REQUEST, { to } );
 // export const asyncFetchRequests = () => action( ASYNC_FETCH_REQUESTS );
 // export const getRequests = requests => action( GET_REQUESTS, { requests } );
 export const newRequest = request => action( NEW_REQUEST, { request } );
-export const joinConversation =
-	conversationId => action( JOIN_CONVERSATION, { conversationId } );
+export const joinConversation = data => action( JOIN_CONVERSATION, data );
 export const socketStatus = status => action( SOCKET_STATUS, { status } );
 export const loadMessages = messages => action( LOAD_MESSAGES, { messages } );
 export const asyncLoadMessages =
 	conversationId => action( ASYNC_LOAD_MESSAGES, { conversationId } );
-export const newMessageRead =
-	conversationId => action( NEW_MESSAGE_READ, { conversationId } );
+export const newMessageRead = data => action( NEW_MESSAGE_READ, data );
+export const createGroupConversation =
+	data => action( CREATE_GROUP_CONVERSATION, data );

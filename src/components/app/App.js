@@ -35,6 +35,19 @@ import { nullOrObject } from '../../utils';
 library.add( faUserPlus, fab, faCircle, faPlus );
 
 class App extends Component {
+	constructor ( props ) {
+		super( props );
+
+		this.state = {
+			showModal: false
+		};
+		this.handleToggleModal = this.handleToggleModal.bind( this );
+	}
+	handleToggleModal () {
+		this.setState( {
+			showModal: !this.state.showModal
+		} );
+	}
 	render() {
 		const {
 			user,
@@ -72,7 +85,7 @@ class App extends Component {
 										<div className='row'>
 											<Chat>
 												<Route
-													path='/conversation/:id'
+													path='/:conversationType/:conversationId'
 													component={ ChatContent }
 													// render={ props => (
 													// 	// <Chat { ...props } />
@@ -98,13 +111,16 @@ class App extends Component {
 												/>
 											</Chat>
 											<Route
-												path='/conversation/:id'
+												path='/:conversationType/:conversationId'
 												children={ props => (
 													<Sidebar
 														{ ...props }
+														handleModal={ this.handleToggleModal }
+														showModal={ this.state.showModal }
 														// newMessage={ newMessage }
 														username={ user.username }
 														contacts={ user.contacts }
+														groups={ user.groups }
 													/>
 												) }
 											/>

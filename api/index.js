@@ -8,10 +8,13 @@ const JWT_SECRET = 'rubik';
 const app = express();
 const rp = require( 'request-promise' );
 const {
-	conversationSchema, requestSchema,
+	conversationSchema,
+	requestSchema,
 	userSchema,
 	contactSchema,
-	messageScheme
+	messageScheme,
+	groupParticipantSchema,
+	groupSchema
 } = require( './schemas' );
 const authenticateHost = 'http://localhost:3002';
 const responseError = ( res, message = 'Unauthorized', code = 401 ) => {
@@ -55,6 +58,9 @@ const RequestModel = mongoose.model( 'Request', requestSchema );
 const ConversationModel = mongoose.model( 'Conversation', conversationSchema );
 const ContactModel = mongoose.model( 'Contact', contactSchema );
 const MessageModel = mongoose.model( 'Message', messageScheme );
+const GroupParticipantModel =
+	mongoose.model( 'GroupParticipant', groupParticipantSchema );
+const GroupModel = mongoose.model( 'Group', groupSchema );
 // list of connected users
 let connectedUsers = [];
 let currentSession;
@@ -291,7 +297,7 @@ db.once( 'open', function () {
 		}
 
 		const conversation =
-			await ( new ConversationModel( { messages: [] } ) ).save();
+			await ( new ConversationModel() ).save();
 		const contactInformation = wholeRequest.from;
 		const contactModelInstanceFrom = new ContactModel( {
 			username: contactInformation.username,
@@ -347,6 +353,87 @@ db.once( 'open', function () {
 		)
 
 		res.send( { message: 'Contact added correctly' } );
+	} );
+	app.post( '/conversation/group', async ( req, res ) => {
+		// TODO: handle creation error
+		const conversation =
+			await ( new ConversationModel( { type: 'group' } ) ).save();
+		// const { user, body: { name, users } } = req;
+		const { name, users } = req.body;
+		// Check whether I need to to the "toObject" operation right from the 
+		// middleware that sets user value.
+		const user = req.user.toObject();
+		const participants = [];
+
+		for ( let userId of users ) {
+			console.log( 'userId', userId );
+			const contact = user.contacts.find(
+				contact => contact.userId.toString() === userId
+			);
+
+			console.log( 'contact', contact );
+
+			if ( !contact ) {
+				return responseError( res );
+			}
+
+			console.log( 'contact', contact );
+
+			// const ( { username, userId } = contact );
+			const groupParticipant =
+				new GroupParticipantModel( ( { username, userId } = contact ) );
+			console.log( 'groupParticipant', groupParticipant );
+
+			participants.push( groupParticipant );
+		}
+
+		// create current user as part of the participants so that other can
+		// see they(?) as well
+		const groupParticipant =
+			new GroupParticipantModel( ( { username, _id: userId } = user ) );
+
+		participants.push( groupParticipant );
+
+		const group = await (
+			new GroupModel( {
+				name,
+				participants,
+				conversationId: conversation._id
+			} )
+		).save();
+
+		// add the conversation to every user
+		for ( let userId of users ) {
+			const contact = await UserModel.findById( userId );
+
+			await UserModel.findByIdAndUpdate(
+				userId,
+				{
+					$set: {
+						groups: [
+							...contact.groups,
+							group
+						]
+					}
+				}
+			);
+		}
+
+		// update user that requested the group
+		await UserModel.findByIdAndUpdate(
+			user._id,
+			{
+				$set: {
+					groups: [
+						...user.groups,
+						group
+					]
+				}
+			}
+		);
+
+		// TODO: handle possible mongodb errors
+		res.send( await UserModel.findById( user._id ) );
 	} );
 	app.get( '/user', ( req, res ) => {
 		authenticateSuccess( res, req.user );
@@ -498,8 +585,12 @@ db.once( 'open', function () {
 		} );
 		socket.on( 'client message', async payload => {
 			// TODO: handle error when bad payload provided
-			const conversationId = payload.conversationId;
-			const message = new MessageModel( { message: payload.message } );
+			const {
+				conversationId,
+				message: payloadMessage,
+				conversationType
+			} = payload;
+			const message = new MessageModel( { message: payloadMessage } );
 			let conversation = await ConversationModel.findById( conversationId );
 
 			await ConversationModel.findByIdAndUpdate(
@@ -520,22 +611,35 @@ db.once( 'open', function () {
 			// console.log( 'custom object', { ...message.toObject(), conversationId } );
 			io
 				.to( conversationId )
-				.emit( 'chat message', { ...message.toObject(), conversationId } );
+					// .emit( 'chat message', { ...message.toObject(), conversationId } );
+					.emit(
+						'chat message',
+						{
+							...message.toObject(),
+							conversationId,
+							conversationType
+						}
+					);
 		} );
-		socket.on( 'client join conversation', async ( conversationId, callback ) => {
+		socket.on( 'client join conversation', async ( data, callback ) => {
 			console.log( 'trying to join chat' );
-			let user =
+			console.log( 'data', data );
+			const { conversationId, conversationType } = data;
+			console.log( 'conversationId', conversationId );
+
+			const userData =
 				connectedUsers.find( user => user.id === socket.id );
 
-			if ( !user ) {
+			if ( !userData ) {
 				console.log( 'could not join' );
-				console.log( 'user', user );
+				console.log( 'userData', userData );
 				return;
 			}
 
-			( { user } = user );
-			// query full user data, since "connectedUsers" has just a part
+			// query full user, since "connectedUsers" has just a part
 			// of each user in order to save memory
+			let { user } = userData;
+
 			user = await UserModel.findById( user._id );
 
 			// TODO: find out how to get rid of so many validations
@@ -545,17 +649,28 @@ db.once( 'open', function () {
 				return;
 			}
 
-			const contact = user.contacts.find(
-				contact => contact.conversationId == conversationId
-			);
+			if ( conversationType === 'group' ) {
+				const group =
+					user.groups.find(
+						group => group.conversationId.toString() === conversationId
+					);
 
-			if ( !contact ) {
-				callback( 'Unauthorized' );
+				if ( !group ) {
+					return callback( 'Unauthorized' );
+				}
+			} else {
+				const contact = user.contacts.find(
+					contact => contact.conversationId.toString() === conversationId
+				);
+
+				if ( !contact ) {
+					return callback( 'Unauthorized' );
+				}
 			}
 
-			console.log( 'joining to', contact.conversationId );
-			socket.join( contact.conversationId );
-			// socket.emit( contact.conversationId );
+			console.log( 'joining to', conversationId );
+			socket.join( conversationId );
+			// socket.emit( conversationId );
 			callback();
 		} );
 	} );

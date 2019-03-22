@@ -4,7 +4,7 @@ import './MessageComposer.css'
 
 let input;
 
-const MessageComposer = ( { createMessage, conversationId } ) => (
+const MessageComposer = ( { createMessage, conversationId, conversationType } ) => (
 	<div className='input-group message-composer'>
 		<input
 			className='form-control mt-auto'
@@ -12,7 +12,12 @@ const MessageComposer = ( { createMessage, conversationId } ) => (
 			placeholder='Write something...'
 			onKeyUp={ e => {
 				if ( e.key === 'Enter' ) {
-					createMessage( conversationId, input.value.trim() );
+					createMessage( {
+						conversationId,
+						conversationType,
+						message: input.value.trim()
+					} );
+
 					input.value = '';
 				}
 			} }
@@ -23,7 +28,13 @@ const MessageComposer = ( { createMessage, conversationId } ) => (
 				type='button'
 				className='btn btn-primary'
 				onClick={ e => {
-					createMessage( conversationId, input.value.trim() );
+					// createMessage( conversationId, input.value.trim() );
+					createMessage( {
+						conversationId,
+						conversationType,
+						message: input.value.trim()
+					} );
+
 					input.value = '';
 				} }
 			>

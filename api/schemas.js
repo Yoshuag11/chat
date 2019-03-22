@@ -13,11 +13,35 @@ const requestSchema = new mongoose.Schema( {
 		username: String
 	}
 } );
-const contactSchema = new mongoose.Schema( {
-	username: String,
-	userId: ObjectId,
-	conversationId: ObjectId
-} );
+const contactSchema = new mongoose.Schema(
+	{
+		username: String,
+		userId: ObjectId,
+		conversationId: ObjectId
+	},
+	{
+		_id: false
+	}
+);
+const groupParticipantSchema = new mongoose.Schema(
+	{
+		username: String,
+		userId: ObjectId
+	},
+	{
+		_id: false
+	}
+);
+const groupSchema = new mongoose.Schema(
+	{
+		name: String,
+		conversationId: ObjectId,
+		participants: [ groupParticipantSchema ]
+	},
+	{
+		_id: false
+	}
+);
 const userRequestSchema = new mongoose.Schema(
 	{
 		userId: ObjectId,
@@ -27,7 +51,8 @@ const userRequestSchema = new mongoose.Schema(
 	},
 	{
 		_id: false
-	} );
+	}
+);
 const messageScheme = new mongoose.Schema( {
 	message: String,
 	createdAt: Date
@@ -38,9 +63,15 @@ const userSchema = new mongoose.Schema( {
 	// status: String,
 	requestsSent: [ userRequestSchema ],
 	requestsReceived: [ userRequestSchema ],
-	contacts: [ contactSchema ]
+	contacts: [ contactSchema ],
+	groups: [ groupSchema ]
 } );
 const conversationSchema = new mongoose.Schema( {
+	type: {
+		type: String,
+		default: 'conversations',
+		enum: [ 'conversation', 'group' ]
+	},
 	messages: [ messageScheme ]
 } );
 
@@ -49,5 +80,7 @@ module.exports = {
 	contactSchema,
 	requestSchema,
 	conversationSchema,
-	messageScheme
+	messageScheme,
+	groupSchema,
+	groupParticipantSchema
 }

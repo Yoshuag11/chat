@@ -1,45 +1,39 @@
 import React from 'react';
 import { Modal, Button } from 'react-bootstrap';
 // import { withRouter } from 'react-router-dom';
-import { connect } from 'react-redux';
-import PropTypes from 'prop-types';
-import { asyncRequest } from '../../actions';
+// import { connect } from 'react-redux';
+// import PropTypes from 'prop-types';
+// import { asyncRequest } from '../../actions';
 
 class MyModal extends React.Component {
-	constructor ( props, context ) {
-		super( props, context );
+	// constructor ( props, context ) {
+	// 	super( props, context );
 
-		this.handleSendRequest = this.handleSendRequest.bind( this );
-		// this.handleClose = this.handleClose.bind( this );
-	}
+	// 	// this.handleSubmit = this.handleSubmit.bind( this );
+	// 	// this.handleClose = this.handleClose.bind( this );
+	// }
 	// handleClose () {
 	// 	this.props.history.push( '/' );
 	// }
-	handleSendRequest ( e ) {
-		this.props.asyncRequest( this.emailInput.value );
-	}
+	// handleSubmit ( e ) {
+	// 	this.props.asyncRequest( this.emailInput.value );
+	// }
 	render () {
 		const {
 			handleModal,
-			showModal
+			showModal,
+			children,
+			title = 'title',
+			submitButton = 'OK',
+			submitHandler = () => {}
 		} = this.props;
 		return (
 			<Modal show={ showModal } onHide={ handleModal }>
 				<Modal.Header closeButton>
-					<Modal.Title>Add User</Modal.Title>
+					<Modal.Title>{ title }</Modal.Title>
 				</Modal.Header>
 				<Modal.Body>
-					<form>
-						<label>user's email to send invitation</label>
-						&nbsp;
-						<input
-							type='email'
-							required
-							ref={ input => {
-								this.emailInput = input;
-							} }
-						/>
-					</form>
+					{ children }
 				</Modal.Body>
 				<Modal.Footer>
 					<Button
@@ -49,24 +43,26 @@ class MyModal extends React.Component {
 						Cancel
 					</Button>
 					<Button
-						onClick={ this.handleSendRequest }
-						variant='primary'>Send Invitation</Button>
+						// onClick={ this.handleSubmit }
+						onClick={ submitHandler }
+						variant='primary'>{ submitButton }</Button>
 				</Modal.Footer>
 			</Modal>
 		);
 	}
 }
 
-MyModal.propTypes = {
-	asyncRequest: PropTypes.func.isRequired
-};
+// MyModal.propTypes = {
+// 	asyncRequest: PropTypes.func.isRequired
+// };
 
-export default connect(
-	null,
-	{
-		asyncRequest
-	}	
-)( MyModal );
+// export default connect(
+// 	null,
+// 	{
+// 		asyncRequest
+// 	}	
+// )( MyModal );
+export default MyModal;
 // export default withRouter(
 // 	connect(
 // 	null,

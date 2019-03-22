@@ -21,6 +21,7 @@ class Conversation extends React.Component {
 			createMessage,
 			// match: { params: { id: conversationId } },
 			conversationId,
+			conversationType,
 			messages,
 		} = this.props;
 		console.log( 'this.props', this.props );
@@ -35,11 +36,22 @@ class Conversation extends React.Component {
 						) {
 							return <li key={ index }>{ message.message }</li>;
 						} else {
-							return <></>;
+							// this happens when you receive a new message that does
+							// not belong to current conversation: whenever a new message
+							// is received, it is added to current list of messages,
+							// it is not big deal since when user changes from chat,
+							// the whole conversation is loaded, which will contain the
+							// the whole conversation up-to-date
+							console.log( 'requirements not fulfilled' );
+							console.log( 'message', message );
+							console.log( 'messageConversationId', messageConversationId );
+							console.log( 'conversationId', conversationId );
+							return '';
 						}
 					 } ) }
 				</ul>
 				<MessageComposer
+					conversationType={ conversationType }
 					createMessage={ createMessage }
 					conversationId={ conversationId }
 				/>
@@ -55,7 +67,8 @@ const mapStateToProps = state => ( {
 Conversation.propTypes = {
 	createMessage: PropTypes.func.isRequired,
 	messages: PropTypes.array.isRequired,
-	conversationId: PropTypes.string.isRequired
+	conversationId: PropTypes.string.isRequired,
+	conversationType: PropTypes.string.isRequired
 	// joinConversation: PropTypes.func.isRequired
 }
 
