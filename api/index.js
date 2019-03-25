@@ -2,6 +2,7 @@ const express = require( 'express' );
 const jwt = require( 'jsonwebtoken' );
 const session = require( 'express-session' );
 const mongoose = require( 'mongoose' );
+const moment = require( 'moment' );
 const port = 3001;
 const COOKIE_NAME = 'auth-service';
 const JWT_SECRET = 'rubik';
@@ -358,6 +359,104 @@ db.once( 'open', function () {
 		// TODO: handle creation error
 		const conversation =
 			await ( new ConversationModel( { type: 'group' } ) ).save();
+		// const { user, body: { name, participants } } = req;
+		const { name, participants: reqParticipants } = req.body;
+		console.log( 'req.body', req.body );
+		console.log( 'reqParticipants', reqParticipants );
+		// Check whether I need to to the "toObject" operation right from the 
+		// middleware that sets user value.
+		const user = req.user.toObject();
+		const participants = [];
+		const currentTime = moment().seconds(0).milliseconds(0).toISOString();
+
+		for ( let participantId of reqParticipants ) {
+			console.log( 'participantId', participantId );
+			const contact = user.contacts.find(
+				contact => {
+					console.log( 'typeof contact.userId', typeof contact.userId );
+					return contact.userId.toString() === participantId
+				}
+			);
+
+			console.log( 'contact', contact );
+
+			if ( !contact ) {
+				return responseError( res );
+			}
+
+			console.log( 'contact', contact );
+
+			const { username, userId } = contact;
+			const groupParticipant =
+				new GroupParticipantModel( {
+					username,
+					userId,
+					joinedAt: currentTime
+				} );
+
+			participants.push( groupParticipant );
+		}
+
+		// create current user as part of the participants so that other can
+		// see they(?) as well
+		const { username, _id: userId } = user
+		const groupParticipant =
+			new GroupParticipantModel( {
+				username,
+				userId,
+				joinedAt: currentTime
+			} );
+
+		participants.push( groupParticipant );
+
+		console.log( 'group participants', participants );
+
+		const group = await (
+			new GroupModel( {
+				name,
+				participants,
+				conversationId: conversation._id
+			} )
+		).save();
+		const groupId = group._id;
+
+		// add the conversation to every user
+		for ( let participantId of reqParticipants ) {
+			const contact = await UserModel.findById( participantId );
+
+			await UserModel.findByIdAndUpdate(
+				participantId,
+				{
+					$set: {
+						groups: [
+							...contact.groups,
+							groupId
+						]
+					}
+				}
+			);
+		}
+
+		// update user that requested the group
+		await UserModel.findByIdAndUpdate(
+			user._id,
+			{
+				$set: {
+					groups: [
+						...user.groups,
+						groupId
+					]
+				}
+			}
+		);
+
+		// TODO: handle possible mongodb errors
+		res.send( await UserModel.findById( user._id ) );
+	} );
+	app.post( '/conversation/group/:conversationId', async ( req, res ) => {
+		// TODO: handle creation error
+		const conversation =
+			await ( new ConversationModel( { type: 'group' } ) ).save();
 		// const { user, body: { name, users } } = req;
 		const { name, users } = req.body;
 		// Check whether I need to to the "toObject" operation right from the 
@@ -379,9 +478,13 @@ db.once( 'open', function () {
 
 			console.log( 'contact', contact );
 
-			// const ( { username, userId } = contact );
+			const { username, userId } = contact;
 			const groupParticipant =
-				new GroupParticipantModel( ( { username, userId } = contact ) );
+				new GroupParticipantModel( {
+					username,
+					userId,
+					joinedAt: moment().seconds(0).milliseconds(0).toISOString()
+				} );
 			console.log( 'groupParticipant', groupParticipant );
 
 			participants.push( groupParticipant );
@@ -451,6 +554,22 @@ db.once( 'open', function () {
 			await ConversationModel.findById( contact.conversationId );
 
 		res.send( conversation );
+	} );
+	app.get( '/groups', async ( req, res ) => {
+		console.log( '*******api "/groups" called' );
+		const user = req.user.toObject();
+		const groups = await GroupModel.find( {
+			_id: {
+				$in: user.groups
+			}
+		} );
+
+		if ( !groups ) {
+			console.log( 'groups', groups );
+			responseError( res );
+		} else {
+			res.send( groups );
+		}
 	} );
 	// app.get( '/requests', async ( req, res ) => {
 	// 	let user = req.user;
@@ -559,7 +678,7 @@ db.once( 'open', function () {
 			// return an array of connected users' ids
 			socket.emit(
 				'chat users connected',
-				connectedUsers.map( ( {user} ) => user )
+				connectedUsers.map( ( { user } ) => user )
 			);
 			// io.emit( 'chat message', 'hello from socket.io' );
 		} );
@@ -584,13 +703,17 @@ db.once( 'open', function () {
 			io.emit( 'chat user disconnected', user );
 		} );
 		socket.on( 'client message', async payload => {
+			console.log( 'client sent message', payload );
 			// TODO: handle error when bad payload provided
 			const {
 				conversationId,
 				message: payloadMessage,
 				conversationType
 			} = payload;
-			const message = new MessageModel( { message: payloadMessage } );
+			const message = new MessageModel( {
+				message: payloadMessage,
+				createdAt: moment().seconds(0).milliseconds(0).toISOString()
+			} );
 			let conversation = await ConversationModel.findById( conversationId );
 
 			await ConversationModel.findByIdAndUpdate(
@@ -609,6 +732,11 @@ db.once( 'open', function () {
 			// io.emit( 'chat message', message );
 			// console.log( 'message', message );
 			// console.log( 'custom object', { ...message.toObject(), conversationId } );
+			console.log( 'data to send to client:', {
+					...message.toObject(),
+					conversationId,
+					conversationType
+				} );
 			io
 				.to( conversationId )
 					// .emit( 'chat message', { ...message.toObject(), conversationId } );
@@ -621,6 +749,51 @@ db.once( 'open', function () {
 						}
 					);
 		} );
+		socket.on( 'client join groups', async () => {
+			console.log( 'trying to groups' );
+			const userData =
+				connectedUsers.find( user => user.id === socket.id );
+
+			if ( !userData ) {
+				console.log( 'could not join' );
+				console.log( 'userData', userData );
+				return callback( `could not join, "user data": ${ userData }` );
+			}
+
+			// query full user, since "connectedUsers" has just a part
+			// of each user in order to save memory
+			let { user } = userData;
+
+			user = ( await UserModel.findById( user._id ) ).toObject();
+
+			// TODO: find out how to get rid of so many validations
+			if ( !user ) {
+				console.log( 'could not join' );
+				console.log( 'user', user );
+				return callback( `could not join, "user": ${ user }` );
+			}
+
+			const groups = await GroupModel.find( {
+				_id: {
+					$in: user.groups
+				}
+			} );
+
+			console.log( 'groups', groups );
+
+			if ( !groups ) {
+				console.log( 'groups', groups );
+				return callback( 'Error fetching the groups' );
+			}
+
+			for ( let group of groups ) {
+				const conversationId = group.conversationId.toString();
+				console.log( 'joining to', conversationId );
+				socket.join( conversationId );
+			}
+		})
+		// TODO: separate (right away) join group conversation from normal conversation
+		// socket.on( 'client join groups', async ( data, callback ) => {} );
 		socket.on( 'client join conversation', async ( data, callback ) => {
 			console.log( 'trying to join chat' );
 			console.log( 'data', data );
@@ -633,39 +806,55 @@ db.once( 'open', function () {
 			if ( !userData ) {
 				console.log( 'could not join' );
 				console.log( 'userData', userData );
-				return;
+				return callback( `could not join, "user data": ${ userData }` );
 			}
 
 			// query full user, since "connectedUsers" has just a part
 			// of each user in order to save memory
 			let { user } = userData;
 
-			user = await UserModel.findById( user._id );
+			user = ( await UserModel.findById( user._id ) ).toObject();
 
 			// TODO: find out how to get rid of so many validations
 			if ( !user ) {
 				console.log( 'could not join' );
 				console.log( 'user', user );
-				return;
+				return callback( `could not join, "user": ${ user }` );
 			}
 
-			if ( conversationType === 'group' ) {
-				const group =
-					user.groups.find(
-						group => group.conversationId.toString() === conversationId
+			console.log( 'conversationType', conversationType );
+
+			// TODO: remove the concep of typeConversation
+			// TODO: remove all the logic for group conversation
+			switch ( conversationType ) {
+				case 'group':
+					// const groupConversationId =
+					// 	user.groups.find(
+					// 		groupConversationId => {
+					// 			console.log( 'groupConversationId', groupConversationId );
+					// 			return groupConversationId.toString() === conversationId;
+					// 		}
+					// 	);
+
+					// if ( !groupConversationId ) {
+					// 	console.log( 'groupConversationId', groupConversationId );
+					// 	return callback( 'Unauthorized' );
+					// }
+					break;
+				case 'conversation':
+					const contact = user.contacts.find(
+						contact => contact.conversationId.toString() === conversationId
 					);
 
-				if ( !group ) {
-					return callback( 'Unauthorized' );
-				}
-			} else {
-				const contact = user.contacts.find(
-					contact => contact.conversationId.toString() === conversationId
-				);
-
-				if ( !contact ) {
-					return callback( 'Unauthorized' );
-				}
+					if ( !contact ) {
+						console.log( 'contact', contact );
+						return callback( 'Unauthorized' );
+					}
+					break;
+				default:
+					return callback(
+						`Unsupported conversation type provided: ${ conversationType}`
+					);
 			}
 
 			console.log( 'joining to', conversationId );

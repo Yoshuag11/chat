@@ -2,7 +2,7 @@
   "name": "my-chat",
   "version": "0.1.0",
   "private": true,
-  "proxy": "http://localhost:3001/",
+  "proxy": "http://192.168.1.70:3001/",
   "dependencies": {
     "react": "^16.8.3",
     "react-dom": "^16.8.3",
@@ -35,6 +35,7 @@
     "concurrently": "^4.1.0",
     "jquery": "^3.3.1",
     "js-cookie": "^2.2.0",
+    "moment": "^2.24.0",
     "node-sass": "^4.11.0",
     "nodemon": "^1.18.10",
     "popper.js": "^1.14.7",

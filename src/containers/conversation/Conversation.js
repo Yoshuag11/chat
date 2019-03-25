@@ -1,5 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import moment from 'moment';
 import {
 	createMessage
 	// joinConversation
@@ -34,7 +35,22 @@ class Conversation extends React.Component {
 							!messageConversationId ||
 							messageConversationId === conversationId
 						) {
-							return <li key={ index }>{ message.message }</li>;
+							return (
+								<li key={ index } className='clearfix'>
+									<p className='float-left'>
+										{ message.message }
+									</p>
+									{ message.createdAt
+										? (
+											<p
+												className='float-right text-muted'>
+												{/* { moment.utc( message.createdAt ).locale().format() } */}
+												{ moment( message.createdAt ).fromNow() }
+											</p>
+										)
+										: '' }
+								</li>
+							);
 						} else {
 							// this happens when you receive a new message that does
 							// not belong to current conversation: whenever a new message

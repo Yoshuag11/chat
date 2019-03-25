@@ -20,6 +20,9 @@ export const ASYNC_LOAD_MESSAGES = 'ASYNC_LOAD_MESSAGES';
 // export const NEW_MESSAGE = 'NEW_MESSAGE';
 export const NEW_MESSAGE_READ = 'NEW_MESSAGE_READ';
 export const CREATE_GROUP_CONVERSATION = 'CREATE_GROUP_CONVERSATION';
+export const ASYNC_LOAD_GROUPS = 'ASYNC_LOAD_GROUPS';
+export const LOAD_GROUPS = 'LOAD_GROUPS';
+export const JOIN_GROUPS = 'JOIN_GROUPS';
 
 const action = (type, payload = {}) => ( { type, ...payload } );
 
@@ -51,3 +54,5 @@ export const asyncLoadMessages =
 export const newMessageRead = data => action( NEW_MESSAGE_READ, data );
 export const createGroupConversation =
 	data => action( CREATE_GROUP_CONVERSATION, data );
+export const loadGroups = groups => action( LOAD_GROUPS, { groups } );
+export const joinGroups = () => action( JOIN_GROUPS );

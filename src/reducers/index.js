@@ -8,7 +8,8 @@ import {
 	// GET_REQUESTS,
 	NEW_REQUEST,
 	SOCKET_STATUS,
-	LOAD_MESSAGES
+	LOAD_MESSAGES,
+	LOAD_GROUPS
 } from '../actions'
 import Cookies from 'js-cookie';
 
@@ -85,6 +86,14 @@ const socket = ( state = false, action ) => {
 			return state;
 	}
 };
+const groups = ( state = [], action ) => {
+	switch ( action.type ) {
+		case LOAD_GROUPS:
+			return action.groups;
+		default:
+			return state;
+	}
+};
 // const newMessage = ( state = null, action ) => {
 // 	switch ( action.type ) {
 // 		case NEW_MESSAGE:
@@ -101,6 +110,7 @@ export default combineReducers( {
 	user,
 	newRequest,
 	// newMessage,
-	socket
+	socket,
+	groups
 	// requests
 } );

@@ -11,7 +11,9 @@ import {
 	sendMessage,
 	// newMessage,
 	loadMessages,
+	loadGroups,
 	joinConversation,
+	joinGroups,
 	ASYNC_AUTHORIZE,
 	START_CHANNEL,
 	CREATE_MESSAGE,
@@ -21,12 +23,16 @@ import {
 	JOIN_CONVERSATION,
 	ASYNC_LOAD_MESSAGES,
 	NEW_MESSAGE_READ,
-	CREATE_GROUP_CONVERSATION
+	CREATE_GROUP_CONVERSATION,
+	ASYNC_LOAD_GROUPS,
+	JOIN_GROUPS,
 	// ASYNC_FETCH_REQUESTS
 } from './actions';
 import { createWebSocketConnection } from './socket';
 
 const apiHost = 'http://localhost:3000';
+// const apiHost = 'http://192.168.1.70:3000';
+// const apiHost = '192.168.1.70:3000';
 const getUser = state => state.user;
 let conversationsJoined = [];
 
@@ -51,8 +57,8 @@ function createSocketChannel ( socket ) {
 			console.log( 'new user connected', user );
 			emit( { type: 'userConnected', user } );
 		}
-		const usersConnected = users => {
-			emit( { type: 'connectedUsers', users } );
+		const usersConnected = connectedUsers => {
+			emit( { type: 'connectedUsers', connectedUsers } );
 		}
 		const userDisconnected = user => {
 			console.log( 'user disconnected', user );
@@ -89,11 +95,11 @@ function* sendRequest ( path = '', method = 'GET', payload = {} ) {
 function* createGroupConversation ( payload ) {
 	console.log( 'about to creat group conversation' );
 	console.log( 'payload', payload );
-	const { users, name } = payload;
+	const { participants, name } = payload;
 	const response = yield sendRequest(
 		'conversation/group',
 		'POST',
-		{ users, name }
+		{ participants, name }
 	);
 
 	if ( response.ok ) {
@@ -120,6 +126,23 @@ function* fetchMessages ( payload ) {
 		console.log( 'error', response );
 	}
 }
+function* fetchGroups () {
+	console.log( 'about to fetch groups' );
+	const response = yield sendRequest( 'groups' );
+
+	if ( response.ok ) {
+		const groups = yield response.json();
+
+		console.log( 'groups loaded' );
+		console.log( 'groups', groups );
+		// connect all groups
+		yield put( loadGroups( groups ) );
+		yield put( joinGroups() );
+	} else {
+		// TODO: handle error
+		console.log( 'error', response );
+	}
+}
 function* asyncAuthorize ( { email, password } ) {
 	const resp = yield sendRequest( 'authorize', 'POST', { email, password } );
 	const responseOK = resp.ok;
@@ -133,6 +156,7 @@ function* asyncAuthorize ( { email, password } ) {
 
 	yield put( authorize( responseOK ) );
 	yield put( setUser( user ) );
+	yield fetchGroups();
 }
 function* fetchUser () {
 	const resp = yield sendRequest( 'user' );
@@ -147,6 +171,7 @@ function* fetchUser () {
 
 	yield put( authorize( responseOK ) );
 	yield put( setUser( user ) );
+	yield fetchGroups();
 }
 // function* fetchRequests () {
 // 	const response = yield sendRequest( 'requests' );
@@ -188,7 +213,7 @@ function* request ( { to } ) {
 	yield sendRequest( 'request', 'POST', { to } );
 }
 function* newMessageRead( payload ) {
-	console.log( 'trying to set a message a read' );
+	console.log( 'trying to set a message as read' );
 	console.log( 'payload', payload );
 	// TODO: add error when conversationId was not provided
 	let user = yield select( getUser );
@@ -272,6 +297,26 @@ function* watchSendMessage ( socket ) {
 		);
 	}
 }
+function* watchJoinGroups ( socket ) {
+	const callback = error => {
+		if ( error) {
+			console.log( 'error:', error );
+		}
+	}
+
+	while ( true ) {
+		yield take( JOIN_GROUPS );
+		yield apply(
+			socket,
+			socket.emit,
+			[
+				'client join groups'
+			],
+			{},
+			callback
+		);
+	}
+}
 function* watchJoinConversation ( socket ) {
 	const callback = error => {
 		if ( error) {
@@ -320,6 +365,9 @@ function* watchRequest () {
 function* watchLoadMessages () {
 	yield takeEvery( ASYNC_LOAD_MESSAGES, fetchMessages );
 }
+function* watchLoadGroups () {
+	yield takeEvery( ASYNC_LOAD_GROUPS, fetchGroups );
+}
 function* watchNewMessageRead () {
 	yield takeEvery( NEW_MESSAGE_READ, newMessageRead );
 }
@@ -365,7 +413,12 @@ function* listenForMessages ( socketChannel ) {
 					const conversationId = userConnected.conversationId;
 
 					// yield put( { type: JOIN_CONVERSATION, conversationId } );
-					yield put( joinConversation( { conversationId } ) );
+					yield put(
+						joinConversation( {
+							conversationId,
+							conversationType: 'conversation'
+						} )
+					);
 
 					// When it comes to contacts, the real user's id is withing the
 					// property "userId" rather than "_id", since "_id" is the
@@ -377,7 +430,7 @@ function* listenForMessages ( socketChannel ) {
 							// any existent user
 							contact = { ...contact };
 
-							contact.status = 'connected';
+							contact.connected = true;
 						}
 						return contact;
 					} );
@@ -388,23 +441,29 @@ function* listenForMessages ( socketChannel ) {
 			case 'connectedUsers':
 				console.log( 'connected users' );
 				console.log( 'payload', payload );
-				const users = payload.users;
+				const { connectedUsers } = payload;
+				const contactsToConnectTo = [];
 
+				// look up for connected contacts
 				contacts = user.contacts.map( contact => {
-					const user = users.find( user => user._id === contact.userId );
+					const user =
+						connectedUsers.find( user => user._id === contact.userId );
 
 					if ( user ) {
 						// Create a copy of the contact
 						contact = { ...contact };
+						contact.connected = true;
 
-						contact.status = 'connected';
+						contactsToConnectTo.push( contact );
 					}
 					return contact;
 				} );
 
+				console.log( 'available contacts to connect to:', contactsToConnectTo );
+
 				// connect conversations of connected users
-				for (let contact of contacts ) {
-					if ( contact.status ) {
+				for (let contact of contactsToConnectTo ) {
+					if ( contact.connected ) {
 						const conversationId = contact.conversationId;
 
 						// Join to the chats so the user can interact with each contact
@@ -413,9 +472,7 @@ function* listenForMessages ( socketChannel ) {
 					}
 				}
 				// connect to available groups
-				for ( let group of user.groups ) {
-					const { conversationId } = group;
-
+				for ( let conversationId of user.groups ) {
 					yield put(
 						joinConversation( {
 							conversationId,
@@ -434,7 +491,7 @@ function* listenForMessages ( socketChannel ) {
 						// Create a copy of the contact
 						contact = { ...contact };
 
-						delete contact.status;
+						delete contact.connected;
 					}
 					return contact;
 				} );
@@ -502,6 +559,7 @@ function* initializeSocketIO () {
 		yield fork( listenForMessages, socketChannel );
 		yield fork( watchSendMessage, socket );
 		yield fork( watchJoinConversation, socket );
+		yield fork( watchJoinGroups, socket );
 
 		console.log( 'socket initialized' );
 		yield put( socketStatus( true ) );
@@ -528,6 +586,7 @@ export default function* rootSaga () {
 		watchLoadMessages(),
 		watchCreateGroupConversation(),
 		watchNewMessageRead(),
+		watchLoadGroups(),
 		startStopChannel(),
 	] );
 }

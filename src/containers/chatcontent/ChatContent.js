@@ -21,6 +21,10 @@ class ChatContent extends React.Component {
 		};
 		this.handleToggleModal = this.handleToggleModal.bind( this );
 		this.handleJoinChat = this.handleJoinChat.bind( this );
+		this.handleSubmit = this.handleSubmit.bind( this );
+	}
+	handleSubmit ( event ) {
+		this.asyncRequest( this.emailInput.value );
 	}
 	handleJoinChat () {
 		// const conversationsJoined = this.state.conversationsJoined;
@@ -38,7 +42,7 @@ class ChatContent extends React.Component {
 
 		if ( conversationType === 'conversation' ) {
 			console.log( 'about to call joinConversation' );
-			joinConversation( { conversationId } );
+			joinConversation( { conversationId, conversationType: 'conversation' } );
 		}
 
 		console.log( 'loading messages asynchronously' );
@@ -104,19 +108,26 @@ class ChatContent extends React.Component {
 					conversationType
 				}
 			},
-			asyncRequest
 		} = this.props;
-		const handleSubmit = e => {
-			asyncRequest( this.emailInput.value );
-		}
-		const { handleToggleModal, state } = this;
-		const username = conversationType === 'conversation'
+		const {
+			handleToggleModal,
+			state,
+			handleSubmit
+		} = this;
+		const title = conversationType === 'conversation'
 			? ( contacts.find( contact =>
 				contact.conversationId === conversationId ) ).username
-			: ( groups.find( group => group.conversationId === conversationId )
-				.participants.map( participant => participant.username )
+			: groups.find(
+				group => group.conversationId === conversationId
+			).name;
+		const participants = conversationType === 'conversation'
+			? null
+			: ( groups.find(
+					group => group.conversationId === conversationId
+				).participants.map( participant => participant.username )
 			).join( ', ');
-			console.log( 'username', username );
+		console.log( 'title', title );
+		console.log( 'participants', participants );
 		return (
 			<>
 				<Modal
@@ -141,9 +152,17 @@ class ChatContent extends React.Component {
 				<StatusHeader
 					newRequest={ newRequest}
 					handleModal={ handleToggleModal }
-					username={ username }
+					// username={ username }
 					requests={ requests }
-				/>
+					conversationType={ conversationType }
+				>
+					<h1>{ title }</h1>
+					{ participants
+						? (
+							<h3>Participants: { participants }</h3>
+						)
+						: '' }
+				</StatusHeader>
 				<Conversation
 					conversationType={ conversationType }
 					conversationId={ conversationId }
@@ -166,7 +185,7 @@ ChatContent.propTypes = {
 
 const mapStateToProps = state => ( {
 	contacts: state.user.contacts,
-	groups: state.user.groups,
+	groups: state.groups,
 	requests: state.user.requestsReceived,
 	newRequest: state.newRequest,
 } );

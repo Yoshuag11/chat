@@ -4,22 +4,29 @@ import { Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { Badge } from 'react-bootstrap';
 
-const StatusHeader = ( { username, handleModal, newRequest, requests } ) => (
+const StatusHeader = (
+	{ children, handleModal, newRequest, requests, conversationType }
+) => (
 	<header id='status-header'>
-		<h3>{ username }</h3>
-		<button
-			className='btn btn-primary'
-			to='/add_contact'
-			onClick={ handleModal }
-		>
-			Add user
-			<FontAwesomeIcon
-				className='fa-pull-right'
-				size='lg'
-				// icon={ [ 'fab', 'react' ] }
-				icon='user-plus'
-			/>
-		</button>
+		{/* <h3>{ username }</h3> */}
+		{ children }
+		{ conversationType === 'group'
+		 ? (
+			<button
+				className='btn btn-primary'
+				to='/add_contact'
+				onClick={ handleModal }
+			>
+				Add participant
+				<FontAwesomeIcon
+					className='fa-pull-right'
+					size='lg'
+					// icon={ [ 'fab', 'react' ] }
+					icon='user-plus'
+				/>
+			</button>
+		 )
+		: '' }
 		<Link
 			// the "to" property here is doing nothing, it just 
 			to='/requests'
@@ -54,7 +61,7 @@ const StatusHeader = ( { username, handleModal, newRequest, requests } ) => (
 );
 
 StatusHeader.propTypes = {
-	username: PropTypes.string.isRequired,
+	conversationType: PropTypes.string.isRequired,
 	requests: PropTypes.array.isRequired,
 	newRequest: PropTypes.bool.isRequired,
 	handleModal: PropTypes.func.isRequired

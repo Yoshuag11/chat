@@ -51,6 +51,7 @@ class App extends Component {
 	render() {
 		const {
 			user,
+			groups,
 			asyncAuthorize,
 			asyncRegister,
 			isAuthorized,
@@ -120,7 +121,7 @@ class App extends Component {
 														// newMessage={ newMessage }
 														username={ user.username }
 														contacts={ user.contacts }
-														groups={ user.groups }
+														groups={ groups }
 													/>
 												) }
 											/>
@@ -177,13 +178,15 @@ App.propTypes = {
 	asyncFetchUser: PropTypes.func.isRequired,
 	// socket: PropTypes.bool.isRequired,
 	startChannel: PropTypes.func.isRequired,
-	user: nullOrObject
+	user: nullOrObject,
+	groups: PropTypes.array.isRequired
 	// newMessage: nullOrObject
 };
 
 const mapStateToProps = state => ( {
 	isAuthorized: state.isAuthorized,
-	user: state.user
+	user: state.user,
+	groups: state.groups
 	// newMessage: state.newMessage
 	// socket: state.socket
 } );

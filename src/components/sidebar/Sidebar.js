@@ -18,7 +18,7 @@ class Sidebar extends React.Component {
 		super( props );
 
 		this.state = {
-			users: [],
+			participants: [],
 			name: ''
 		};
 		this.handleChange = this.handleChange.bind( this );
@@ -30,14 +30,14 @@ class Sidebar extends React.Component {
 		if ( target.type === 'text' ) {
 			this.setState( { name: target.value } );
 		} else {
-			const users = [];
+			const participants = [];
 			const { selectedOptions } = target;
 	
 			for ( let option of selectedOptions ) {
-				users.push( option.value );
+				participants.push( option.value );
 			}
-	
-			this.setState( { users } );
+
+			this.setState( { participants } );
 		}
 	}
 	handleSubmit ( e ) {
@@ -103,14 +103,28 @@ class Sidebar extends React.Component {
 				</Modal>
 				<div id='sidebar' className='sidebar-sticky'>
 					<h1>{ username }</h1>
+					<button
+						className='btn btn-primary'
+						to='/add_contact'
+						onClick={ handleModal }
+					>
+						Add contact
+						<FontAwesomeIcon
+							className='fa-pull-right'
+							size='lg'
+							// icon={ [ 'fab', 'react' ] }
+							icon='user-plus'
+						/>
+					</button>
 					<h4>Contact List</h4>
 					<ul className='contact-list'>
 						{ contacts.map( ( contact, index ) => (
 							<li key={ index }>
 								<span
-									className={ contact.status === 'connected'
-									? 'text-success'
-									: 'text-danger' }
+									className={
+										contact.connected
+											? 'text-success'
+											: 'text-danger' }
 								>
 									<FontAwesomeIcon icon='circle' />
 								</span>
@@ -135,7 +149,7 @@ class Sidebar extends React.Component {
 						) ) }
 					</ul>
 					<h4>
-						Group Conversations
+						Groups
 						&nbsp;
 						<button
 							onClick={ handleModal }
