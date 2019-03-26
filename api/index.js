@@ -1,6 +1,7 @@
 const express = require( 'express' );
 const jwt = require( 'jsonwebtoken' );
 const session = require( 'express-session' );
+const cookieParser = require( 'cookie-parser' );
 const mongoose = require( 'mongoose' );
 const moment = require( 'moment' );
 const port = 3001;
@@ -90,6 +91,7 @@ db.once( 'open', function () {
 	// TODO: add middleware to validate whether user is logged in or not
 	app.use( express.json() );
 	app.use( express.urlencoded( { extended: true } ) );
+	app.use( cookieParser() );
 	app.use( async ( req, res, next ) => {
 		currentSession = req.session;
 		res.setHeader( 'Content-type', 'application/json' );
@@ -105,9 +107,17 @@ db.once( 'open', function () {
 			const user = await userLoggedIn( currentSession );
 
 			if ( !user ) {
-				return path === '/authorize'
-					? next()
-					: responseError( res );
+				if ( path === '/authorize' ) {
+					return next();
+				} else {
+					// remove cookie if user is not authorized (in case it was set though )
+					res.clearCookie( 'isAuthorized' );
+					res.clearCookie( 'io' );
+					return responseError( res );
+				}
+				// return path === '/authorize'
+				// 	? next()
+				// 	: responseError( res );
 			}
 
 			req.user = user;
@@ -210,6 +220,7 @@ db.once( 'open', function () {
 			authenticateSuccess( res, user );
 		} catch ( e ) {
 			console.log( e );
+			// remove cookie if user is not authorized (in case it was set though )
 			return responseError( res );
 		}
 	} );
@@ -365,26 +376,25 @@ db.once( 'open', function () {
 		console.log( 'reqParticipants', reqParticipants );
 		// Check whether I need to to the "toObject" operation right from the 
 		// middleware that sets user value.
-		const user = req.user.toObject();
+		let user = req.user.toObject();
 		const participants = [];
 		const currentTime = moment().seconds(0).milliseconds(0).toISOString();
 
 		for ( let participantId of reqParticipants ) {
 			console.log( 'participantId', participantId );
 			const contact = user.contacts.find(
-				contact => {
-					console.log( 'typeof contact.userId', typeof contact.userId );
-					return contact.userId.toString() === participantId
-				}
+				// contact.userId is an ObjectId object
+				contact => contact.userId.toString() === participantId
 			);
 
-			console.log( 'contact', contact );
-
 			if ( !contact ) {
-				return responseError( res );
+				console.log( 'contact', contact );
+				return responseError(
+					res,
+					`Contact not found, id: ${ participantId}`,
+					404
+				);
 			}
-
-			console.log( 'contact', contact );
 
 			const { username, userId } = contact;
 			const groupParticipant =
@@ -422,14 +432,14 @@ db.once( 'open', function () {
 
 		// add the conversation to every user
 		for ( let participantId of reqParticipants ) {
-			const contact = await UserModel.findById( participantId );
+			const participant = await UserModel.findById( participantId );
 
 			await UserModel.findByIdAndUpdate(
 				participantId,
 				{
 					$set: {
 						groups: [
-							...contact.groups,
+							...participant.groups,
 							groupId
 						]
 					}
@@ -438,7 +448,7 @@ db.once( 'open', function () {
 		}
 
 		// update user that requested the group
-		await UserModel.findByIdAndUpdate(
+		user = await UserModel.findByIdAndUpdate(
 			user._id,
 			{
 				$set: {
@@ -447,96 +457,128 @@ db.once( 'open', function () {
 						groupId
 					]
 				}
+			},
+			{
+				new: true
 			}
 		);
 
-		// TODO: handle possible mongodb errors
-		res.send( await UserModel.findById( user._id ) );
+		// res.send( await UserModel.findById( user._id ) );
+
+		const groups = await GroupModel.find( {
+			_id: {
+				$in: user.groups
+			}
+		} );
+
+		res.send( groups );
 	} );
-	app.post( '/conversation/group/:conversationId', async ( req, res ) => {
-		// TODO: handle creation error
-		const conversation =
-			await ( new ConversationModel( { type: 'group' } ) ).save();
-		// const { user, body: { name, users } } = req;
-		const { name, users } = req.body;
+	app.post( '/conversation/group/:groupId', async ( req, res ) => {
+		const { participants: reqParticipants } = req.body;
+
+		if (
+			!reqParticipants ||
+			!Array.isArray( reqParticipants ) ||
+			reqParticipants.length === 0
+		) {
+			return responseError(
+				res,
+				`Wrong participants value: ${ reqParticipants }`,
+				400
+			);
+		}
+
+		let { groupId: reqGroupId } = req.params;
+		console.log( 'reqGroupId', reqGroupId );
 		// Check whether I need to to the "toObject" operation right from the 
 		// middleware that sets user value.
 		const user = req.user.toObject();
-		const participants = [];
+		let group = user.groups.find( groupId => groupId.toString() === reqGroupId );
 
-		for ( let userId of users ) {
-			console.log( 'userId', userId );
+		if ( !group ) {
+			console.log( 'group', group );
+			return responseError(
+				res,
+				`You don't have access to the requested group: ${ reqGroupId }`,
+				403
+			);
+		}
+
+		group = await GroupModel.findById( reqGroupId );
+
+		if ( !group ) {
+			return responseError( res, 'Group not found', 404 );
+		}
+		const participants = [];
+		const currentTime = moment().seconds(0).milliseconds(0).toISOString();
+
+		// Get the ObjectId of the group in question to add it
+		// to the new participants
+		const groupId = group._id;
+
+
+		for ( let participantId of reqParticipants ) {
 			const contact = user.contacts.find(
-				contact => contact.userId.toString() === userId
+				// contact.userId is an ObjectId object
+				contact => contact.userId.toString() === participantId
 			);
 
-			console.log( 'contact', contact );
-
 			if ( !contact ) {
-				return responseError( res );
+				console.log( 'contact', contact );
+				return responseError(
+					res,
+					`Contact not found, id: ${ participantId}`,
+					404
+				);
 			}
-
-			console.log( 'contact', contact );
 
 			const { username, userId } = contact;
 			const groupParticipant =
 				new GroupParticipantModel( {
 					username,
 					userId,
-					joinedAt: moment().seconds(0).milliseconds(0).toISOString()
+					joinedAt: currentTime
 				} );
-			console.log( 'groupParticipant', groupParticipant );
 
 			participants.push( groupParticipant );
 		}
 
-		// create current user as part of the participants so that other can
-		// see they(?) as well
-		const groupParticipant =
-			new GroupParticipantModel( ( { username, _id: userId } = user ) );
-
-		participants.push( groupParticipant );
-
-		const group = await (
-			new GroupModel( {
-				name,
-				participants,
-				conversationId: conversation._id
-			} )
-		).save();
+		await GroupModel.findByIdAndUpdate(
+			groupId,
+			{
+				$set: {
+					participants: [
+						...group.participants,
+						...participants
+					]
+				}
+			}
+		);
 
 		// add the conversation to every user
-		for ( let userId of users ) {
-			const contact = await UserModel.findById( userId );
+		for ( let participantId of reqParticipants ) {
+			const participant = await UserModel.findById( participantId );
 
 			await UserModel.findByIdAndUpdate(
-				userId,
+				participantId,
 				{
 					$set: {
 						groups: [
-							...contact.groups,
-							group
+							...participant.groups,
+							groupId
 						]
 					}
 				}
 			);
 		}
 
-		// update user that requested the group
-		await UserModel.findByIdAndUpdate(
-			user._id,
-			{
-				$set: {
-					groups: [
-						...user.groups,
-						group
-					]
-				}
+		const groups = await GroupModel.find( {
+			_id: {
+				$in: user.groups
 			}
-		);
+		} );
 
-		// TODO: handle possible mongodb errors
-		res.send( await UserModel.findById( user._id ) );
+		res.send( groups );
 	} );
 	app.get( '/user', ( req, res ) => {
 		authenticateSuccess( res, req.user );
@@ -556,7 +598,7 @@ db.once( 'open', function () {
 		res.send( conversation );
 	} );
 	app.get( '/groups', async ( req, res ) => {
-		console.log( '*******api "/groups" called' );
+		console.log( '********* api "/groups" called *********' );
 		const user = req.user.toObject();
 		const groups = await GroupModel.find( {
 			_id: {
@@ -683,15 +725,17 @@ db.once( 'open', function () {
 			// io.emit( 'chat message', 'hello from socket.io' );
 		} );
 		socket.on( 'disconnect', () => {
-			console.log( 'user disconnected' );
+			console.log( '********* disconnect *********' );
 
+			// find out the disconnected user via its socket id
 			let user =
 				connectedUsers.find( user => user.id === socket.id );
 
 			if ( !user ) {
-				console.log( 'user', user );
 				return;
 			}
+
+			console.log( 'user', user );
 
 			( { user } = user );
 
@@ -702,6 +746,22 @@ db.once( 'open', function () {
 			// notify users about the disconnected user
 			io.emit( 'chat user disconnected', user );
 		} );
+		socket.on( 'client user added to group', async payload => {
+			console.log( '********* client user added to group *********' );
+			const { participantId } = payload;
+			const participant = connectedUsers.find( ( { user } ) => {
+				// "user._id" is a string
+				return user._id === participantId;
+			} );
+
+			console.log( 'participant', participant );
+
+			if ( participant ) {
+				io
+					.to( participant.id ) // send the message to the participant's socket
+					.emit( 'chat added to group' );
+			}
+		})
 		socket.on( 'client message', async payload => {
 			console.log( 'client sent message', payload );
 			// TODO: handle error when bad payload provided
@@ -732,11 +792,6 @@ db.once( 'open', function () {
 			// io.emit( 'chat message', message );
 			// console.log( 'message', message );
 			// console.log( 'custom object', { ...message.toObject(), conversationId } );
-			console.log( 'data to send to client:', {
-					...message.toObject(),
-					conversationId,
-					conversationType
-				} );
 			io
 				.to( conversationId )
 					// .emit( 'chat message', { ...message.toObject(), conversationId } );
@@ -750,7 +805,8 @@ db.once( 'open', function () {
 					);
 		} );
 		socket.on( 'client join groups', async () => {
-			console.log( 'trying to groups' );
+			console.log( '********* client join groups *********' );
+			console.log( 'trying to join groups' );
 			const userData =
 				connectedUsers.find( user => user.id === socket.id );
 
@@ -779,8 +835,6 @@ db.once( 'open', function () {
 				}
 			} );
 
-			console.log( 'groups', groups );
-
 			if ( !groups ) {
 				console.log( 'groups', groups );
 				return callback( 'Error fetching the groups' );
@@ -798,8 +852,6 @@ db.once( 'open', function () {
 			console.log( 'trying to join chat' );
 			console.log( 'data', data );
 			const { conversationId, conversationType } = data;
-			console.log( 'conversationId', conversationId );
-
 			const userData =
 				connectedUsers.find( user => user.id === socket.id );
 
@@ -822,12 +874,10 @@ db.once( 'open', function () {
 				return callback( `could not join, "user": ${ user }` );
 			}
 
-			console.log( 'conversationType', conversationType );
-
-			// TODO: remove the concep of typeConversation
+			// TODO: remove the concept of typeConversation
 			// TODO: remove all the logic for group conversation
 			switch ( conversationType ) {
-				case 'group':
+				// case 'group':
 					// const groupConversationId =
 					// 	user.groups.find(
 					// 		groupConversationId => {
@@ -840,7 +890,7 @@ db.once( 'open', function () {
 					// 	console.log( 'groupConversationId', groupConversationId );
 					// 	return callback( 'Unauthorized' );
 					// }
-					break;
+					// break;
 				case 'conversation':
 					const contact = user.contacts.find(
 						contact => contact.conversationId.toString() === conversationId

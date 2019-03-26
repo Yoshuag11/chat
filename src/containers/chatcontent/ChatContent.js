@@ -2,13 +2,16 @@ import React from 'react';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import StatusHeader from '../../components/status-header/StatusHeader';
+import { Form } from 'react-bootstrap';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import Conversation from '../conversation/Conversation';
 import Modal from '../../components/modal/Modal';
 import {
 	joinConversation,
 	asyncLoadMessages,
 	newMessageRead,
-	asyncRequest
+	asyncRequest,
+	addParticipants
 } from '../../actions';
 
 class ChatContent extends React.Component {
@@ -17,21 +20,17 @@ class ChatContent extends React.Component {
 
 		this.state = {
 			showModal: false,
-			conversationsJoined: []
+			conversationsJoined: [],
+			participants: []
 		};
 		this.handleToggleModal = this.handleToggleModal.bind( this );
 		this.handleJoinChat = this.handleJoinChat.bind( this );
 		this.handleSubmit = this.handleSubmit.bind( this );
+		this.handleChange = this.handleChange.bind( this );
+		this.handleGetConversationData = this.handleGetConversationData.bind( this );
 	}
-	handleSubmit ( event ) {
-		this.asyncRequest( this.emailInput.value );
-	}
-	handleJoinChat () {
-		// const conversationsJoined = this.state.conversationsJoined;
+	handleGetConversationData () {
 		const {
-			joinConversation,
-			asyncLoadMessages,
-			newMessageRead,
 			match: {
 				params: {
 					conversationId,
@@ -39,6 +38,45 @@ class ChatContent extends React.Component {
 				}
 			}
 		} = this.props;
+		return { conversationId, conversationType };
+	}
+	handleChange ( event ) {
+		const participants = [];
+			const { selectedOptions } = event.target;
+	
+			for ( let option of selectedOptions ) {
+				participants.push( option.value );
+			}
+
+			this.setState( { participants } );
+	}
+	// handleSubmit ( event ) {
+	// 	this.asyncRequest( this.emailInput.value );
+	// }
+	handleSubmit ( event ) {
+		const { conversationId } = this.handleGetConversationData();
+		const group = this.props.groups.find(
+				group => group.conversationId === conversationId
+			);
+
+		const payload = {
+			groupId: group._id,
+			participants: this.state.participants
+		};
+
+		console.log( 'payload', payload );
+		this.props.addParticipants( payload );
+	}
+	handleJoinChat () {
+		// const conversationsJoined = this.state.conversationsJoined;
+		const {
+			joinConversation,
+			asyncLoadMessages,
+			newMessageRead
+		} = this.props;
+		const {
+			conversationId, conversationType
+		} = this.handleGetConversationData();
 
 		if ( conversationType === 'conversation' ) {
 			console.log( 'about to call joinConversation' );
@@ -72,14 +110,11 @@ class ChatContent extends React.Component {
 			}
 		} = prevProps;
 		const {
-			newMessageRead,
-			match: {
-				params: {
-					conversationId,
-					conversationType
-				}
-			}
+			newMessageRead
 		} = this.props;
+		const {
+			conversationId, conversationType
+		} = this.handleGetConversationData();
 
 		if ( conversationId === prevConversationId ) {
 			newMessageRead( { conversationId, conversationType } );
@@ -101,31 +136,49 @@ class ChatContent extends React.Component {
 			newRequest,
 			contacts,
 			requests,
-			groups,
-			match: {
-				params: {
-					conversationId,
-					conversationType
-				}
-			},
+			groups
 		} = this.props;
+		const {
+			conversationId, conversationType
+		} = this.handleGetConversationData();
 		const {
 			handleToggleModal,
 			state,
 			handleSubmit
 		} = this;
-		const title = conversationType === 'conversation'
-			? ( contacts.find( contact =>
-				contact.conversationId === conversationId ) ).username
-			: groups.find(
-				group => group.conversationId === conversationId
-			).name;
-		const participants = conversationType === 'conversation'
+		const group = conversationType === 'conversation'
 			? null
-			: ( groups.find(
-					group => group.conversationId === conversationId
-				).participants.map( participant => participant.username )
-			).join( ', ');
+			: groups.find( group => group.conversationId === conversationId );
+		const title = ( group && group.name ) ||
+			( contacts.find(
+				contact => contact.conversationId === conversationId
+			) ).username;
+		// const title = conversationType === 'conversation'
+		// 	? ( contacts.find( contact =>
+		// 		contact.conversationId === conversationId ) ).username
+		// 	: groups.find(
+		// 		group => group.conversationId === conversationId
+		// 	).name;
+		let availableContactsToAdd = [ ...contacts ];
+		const participants = group
+			? ( group.participants.map(
+					participant => {
+						const { username } = participant;
+
+						availableContactsToAdd =
+							availableContactsToAdd.filter(
+								contact => contact.username !== username
+							);
+						return username;
+					} )
+				).join( ', ')
+			: null;
+		// const participants = conversationType === 'conversation'
+		// 	? null
+		// 	: ( groups.find(
+		// 			group => group.conversationId === conversationId
+		// 		).participants.map( participant => participant.username )
+		// 	).join( ', ');
 		console.log( 'title', title );
 		console.log( 'participants', participants );
 		return (
@@ -133,11 +186,32 @@ class ChatContent extends React.Component {
 				<Modal
 					handleModal={ handleToggleModal }
 					showModal={ state.showModal }
-					title='Add User'
-					submitButton='Send Invitation'
+					title='Add User(s)'
+					submitButton='Add'
+					// submitButton='Send Invitation'
 					submitHandler={ handleSubmit }
 				>
-					<form>
+					<Form>
+						<Form.Group controlId='sidebarModalUserSelector'>
+							<Form.Label>Select users</Form.Label>
+							<Form.Control
+								value={ this.state.users }
+								as='select'
+								multiple
+								onChange={ this.handleChange }
+							>
+								{ availableContactsToAdd.map( ( contact, index ) => (
+									<option
+										key={ index }
+										value={ contact.userId }
+									>
+										{ contact.username }
+									</option>
+								) ) }
+							</Form.Control>
+						</Form.Group>
+					</Form>
+					{/* <form>
 						<label>user's email to send invitation</label>
 						&nbsp;
 						<input
@@ -147,16 +221,36 @@ class ChatContent extends React.Component {
 								this.emailInput = input;
 							} }
 						/>
-					</form>
+					</form> */}
 				</Modal>
 				<StatusHeader
 					newRequest={ newRequest}
-					handleModal={ handleToggleModal }
+					// handleModal={ handleToggleModal }
 					// username={ username }
 					requests={ requests }
-					conversationType={ conversationType }
+					// conversationType={ conversationType }
 				>
-					<h1>{ title }</h1>
+					<h1>
+						{ title }
+						&nbsp;
+						{ conversationType === 'group'
+							? (
+								<button
+									className='btn btn-primary'
+									to='/add_contact'
+									onClick={ handleToggleModal }
+								>
+									Add participant(s)
+									<FontAwesomeIcon
+										className='fa-pull-right'
+										size='lg'
+										// icon={ [ 'fab', 'react' ] }
+										icon='user-plus'
+									/>
+								</button>
+							)
+							: '' }
+					</h1>
 					{ participants
 						? (
 							<h3>Participants: { participants }</h3>
@@ -180,7 +274,8 @@ ChatContent.propTypes = {
 	joinConversation: PropTypes.func.isRequired,
 	asyncLoadMessages: PropTypes.func.isRequired,
 	newMessageRead: PropTypes.func.isRequired,
-	asyncRequest: PropTypes.func.isRequired
+	asyncRequest: PropTypes.func.isRequired,
+	addParticipants: PropTypes.func.isRequired
 };
 
 const mapStateToProps = state => ( {
@@ -196,6 +291,7 @@ export default connect(
 		joinConversation,
 		asyncLoadMessages,
 		newMessageRead,
-		asyncRequest
+		asyncRequest,
+		addParticipants
 	}
 )( ChatContent );

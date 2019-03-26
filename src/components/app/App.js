@@ -77,7 +77,7 @@ class App extends Component {
 					/>
 					<Route
 						path='/'
-						render={ props => {
+						render={ () => {
 							if ( !isAuthorized ) {
 								return <Redirect to='/authenticate' />;
 							} else if ( user/* && socket */ ) {

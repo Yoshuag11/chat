@@ -60,6 +60,7 @@ class Sidebar extends React.Component {
 			conversationId = null
 		} = match ? match.params : {};
 		console.log( 'match', match );
+		console.log( 'groups', groups );
 		console.log( 'conversationId', conversationId );
 		return (
 			<nav

@@ -91,6 +91,8 @@ class Chat extends React.Component {
 			// requests,
 			// newRequest
 		} = this.props;
+		console.log( '********* Chat render *********' );
+		console.log( 'socket', socket );
 		// const { handleToggleModal } = this;
 		if ( !socket ) {
 			return <Loading />;

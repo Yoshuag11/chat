@@ -23,6 +23,9 @@ export const CREATE_GROUP_CONVERSATION = 'CREATE_GROUP_CONVERSATION';
 export const ASYNC_LOAD_GROUPS = 'ASYNC_LOAD_GROUPS';
 export const LOAD_GROUPS = 'LOAD_GROUPS';
 export const JOIN_GROUPS = 'JOIN_GROUPS';
+export const ADD_PARTICIPANTS = 'ADD_PARTICIPANTS';
+export const USER_ADDED_TO_GROUP = 'USER_ADDED_TO_GROUP';
+export const CLOSE_SOCKET = 'CLOSE_SOCKET';
 
 const action = (type, payload = {}) => ( { type, ...payload } );
 
@@ -56,3 +59,7 @@ export const createGroupConversation =
 	data => action( CREATE_GROUP_CONVERSATION, data );
 export const loadGroups = groups => action( LOAD_GROUPS, { groups } );
 export const joinGroups = () => action( JOIN_GROUPS );
+export const addParticipants = payload => action( ADD_PARTICIPANTS, payload );
+export const userAddedToGroup =
+	participantId => action( USER_ADDED_TO_GROUP, { participantId } );
+export const closeSocket = () => action( CLOSE_SOCKET );

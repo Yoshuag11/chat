@@ -12,8 +12,10 @@ import {
 	// newMessage,
 	loadMessages,
 	loadGroups,
+	closeSocket,
 	joinConversation,
 	joinGroups,
+	userAddedToGroup,
 	ASYNC_AUTHORIZE,
 	START_CHANNEL,
 	CREATE_MESSAGE,
@@ -26,6 +28,9 @@ import {
 	CREATE_GROUP_CONVERSATION,
 	ASYNC_LOAD_GROUPS,
 	JOIN_GROUPS,
+	ADD_PARTICIPANTS,
+	USER_ADDED_TO_GROUP,
+	CLOSE_SOCKET
 	// ASYNC_FETCH_REQUESTS
 } from './actions';
 import { createWebSocketConnection } from './socket';
@@ -35,11 +40,21 @@ const apiHost = 'http://localhost:3000';
 // const apiHost = '192.168.1.70:3000';
 const getUser = state => state.user;
 let conversationsJoined = [];
+let userGroups = [];
+const callback = error => {
+	if ( error) {
+		console.log( 'error:', error );
+	}
+};
 
 function createSocketChannel ( socket ) {
 	return eventChannel( emit => {
+		const emitData = ( type, payload = {} ) => {
+			emit( { type, ...payload } );
+		};
 		const requestHandler = request => {
-			emit( { type: 'request', request } );
+			emitData( 'request', { request } );
+			// emit( { type: 'request', request } );
 		};
 		const messageHandler = message => {
 			console.log( 'message received', message );
@@ -56,13 +71,25 @@ function createSocketChannel ( socket ) {
 		const userConnected = user => {
 			console.log( 'new user connected', user );
 			emit( { type: 'userConnected', user } );
-		}
+		};
 		const usersConnected = connectedUsers => {
 			emit( { type: 'connectedUsers', connectedUsers } );
-		}
+		};
 		const userDisconnected = user => {
 			console.log( 'user disconnected', user );
 			emit( { type: 'userDisconnected', user } );
+		};
+		const socketDisconnected = () => {
+			console.log( '********* socketDisconnected *********' );
+			emitData( 'socketDisconnected' );
+		}
+		const socketReconnect = () => {
+			console.log( '********* socketReconnect *********' );
+			emitData( 'socketReconnect' );
+		}
+		const addedToNewGroup = () => {
+			console.log( '********* addedToNewGroup *********' );
+			emitData( 'addedToNewGroup' );
 		}
 
 		// set up the subscription
@@ -71,6 +98,12 @@ function createSocketChannel ( socket ) {
 		socket.on( 'chat user connected', userConnected );
 		socket.on( 'chat users connected', usersConnected );
 		socket.on( 'chat user disconnected', userDisconnected );
+		socket.on( 'chat added to group', addedToNewGroup );
+		socket.on( 'disconnect', socketDisconnected );
+		socket.on( 'reconnect', socketReconnect );
+		// socket.on( 'connect', () => {
+		// 	console.log( 'hey dan' );
+		// } );
 
 		// the subscriber must return an unsubscribe function
 		// this will be invoked when the saga calls `channel.close` method
@@ -90,7 +123,44 @@ function* sendRequest ( path = '', method = 'GET', payload = {} ) {
 		options.headers = { 'Content-Type': 'application/json' };
 		options.body = JSON.stringify( payload );
 	}
-	return yield fetch( `${ apiHost }/${ path }`, options );
+	const response = yield fetch( `${ apiHost }/${ path }`, options );
+
+	console.log( 'response', response );
+
+	if ( response.status === 401 ) {
+		yield put( setUser( null ) );
+		yield put( authorize( false ) );
+		yield put( closeSocket() );
+		throw new Error( 'Unauthorized' );
+	}
+	return response;
+	// return yield fetch( `${ apiHost }/${ path }`, options );
+}
+function* asyncAddParticipant ( payload ) {
+	console.log( '********* asyncAddParticipant *********' );
+	const { groupId, participants } = payload;
+	const response = yield sendRequest(
+		`conversation/group/${ groupId }`,
+		'POST',
+		{ participants }
+	);
+
+	if ( response.ok ) {
+		const groups = yield response.json();
+
+		console.log( 'participant added' );
+		console.log( 'groups', groups );
+
+		// yield put( setUser( user ) );
+		userGroups = groups;
+
+		yield put( loadGroups( groups ) );
+		yield put( joinGroups() );
+
+		for ( let participantId of participants ) {
+			yield put( userAddedToGroup( participantId ) )
+		}
+	}
 }
 function* createGroupConversation ( payload ) {
 	console.log( 'about to creat group conversation' );
@@ -103,32 +173,59 @@ function* createGroupConversation ( payload ) {
 	);
 
 	if ( response.ok ) {
-		const user = yield response.json();
+		const groups = yield response.json();
 
 		console.log( 'group created' );
-		yield put( setUser( user ) );
+		console.log( 'groups', groups );
+		// yield put( setUser( user ) );
+
+		userGroups = groups;
+
+		yield put( loadGroups( groups ) );
+		yield put( joinGroups() );
+
+		for ( let participantId of participants ) {
+			yield put( userAddedToGroup( participantId ) )
+		}
 	}
 }
 // function* fetchMessages ( conversationId ) {
 function* fetchMessages ( payload ) {
 	console.log( 'about to fetch messages' );
 	console.log( 'conversationId', payload.conversationId );
-	const response = yield sendRequest( `conversation/${ payload.conversationId }` );
+	try {
+		const response = yield sendRequest( `conversation/${ payload.conversationId }` );
 
-	if ( response.ok ) {
-		const conversation = yield response.json();
-
-		console.log( 'conversation loaded' );
-		console.log( 'conversation', conversation );
-		yield put( loadMessages( conversation.messages ) );
-	} else {
-		// TODO: handle error
-		console.log( 'error', response );
+		if ( response.ok ) {
+			const conversation = yield response.json();
+	
+			console.log( 'conversation loaded' );
+			console.log( 'conversation', conversation );
+			yield put( loadMessages( conversation.messages ) );
+		} else {
+			console.log( 'error', response );
+		}
+	} catch ( error ) {
+		console.log( 'error', error );
 	}
 }
+// function* asynLoadGroups () {
+// 	console.log( '********* asynLoadGroups *********' );
+// 	let groups;
+
+// 	if ( userGroups.length > 0 ) {
+// 		groups = userGroups;
+// 	} else {
+// 		// TODO: handle errors
+// 		groups = yield fetchGroups();
+// 	}
+
+// 	yield put( loadGroups( groups ) );
+// }
 function* fetchGroups () {
-	console.log( 'about to fetch groups' );
+	console.log( '********* fetchGroups *********' );
 	const response = yield sendRequest( 'groups' );
+	console.log( 'response', response );
 
 	if ( response.ok ) {
 		const groups = yield response.json();
@@ -136,7 +233,10 @@ function* fetchGroups () {
 		console.log( 'groups loaded' );
 		console.log( 'groups', groups );
 		// connect all groups
-		yield put( loadGroups( groups ) );
+
+		userGroups = groups;
+
+		yield put( loadGroups( userGroups ) );
 		yield put( joinGroups() );
 	} else {
 		// TODO: handle error
@@ -159,19 +259,26 @@ function* asyncAuthorize ( { email, password } ) {
 	yield fetchGroups();
 }
 function* fetchUser () {
-	const resp = yield sendRequest( 'user' );
-	const responseOK = resp.ok;
-	let user;
+	console.log( '********* fetchUser *********')
+	try {
+		const resp = yield sendRequest( 'user' );
+		const responseOK = resp.ok;
+		let user;
+	
+		if ( responseOK ) {
+			user = yield resp.json();
 
-	if ( responseOK ) {
-		user = yield resp.json();
-	} else {
-		user = null;
+			yield fetchGroups();
+		} else {
+			user = null;
+		}
+	
+		yield put( authorize( responseOK ) );
+		yield put( setUser( user ) );
+		// yield fetchGroups();
+	} catch ( error ) {
+		console.log( 'error', error );
 	}
-
-	yield put( authorize( responseOK ) );
-	yield put( setUser( user ) );
-	yield fetchGroups();
 }
 // function* fetchRequests () {
 // 	const response = yield sendRequest( 'requests' );
@@ -237,18 +344,25 @@ function* newMessageRead( payload ) {
 					return contact;
 				} );
 
-				user = { ...user, contacts };
+				// user = { ...user, contacts };
+				return yield put( setUser( { ...user, contacts } ) );
 			}
 			break;
 		case 'group':
-			const group = user.groups.find( group =>
-				group.conversationId === conversationId && group.newMessage );
+			console.log( 'userGroups', userGroups );
+			const group = userGroups.find(
+				// group.conversationId is a string value
+				group => group.conversationId === conversationId && group.newMessage
+			);
 
+			// TODO: set error when group is not found
 			if ( group ) {
 				console.log( 'about to remove "new message" notification' );
 				console.log( 'newMessageRead', conversationId );
-				const groups = user.groups.map( group => {
-					if ( group.conversationId === conversationId ) {
+				const groups = userGroups.map( group => {
+					console.log( 'group.conversationId', group.conversationId );
+					console.log( 'typeof group.conversationId', typeof group.conversationId );
+					if ( group.conversationId.toString() === conversationId ) {
 						// create a copy of the group
 						group = { ...group };
 
@@ -257,7 +371,9 @@ function* newMessageRead( payload ) {
 					return group;
 				} );
 
-				user = { ...user, groups };
+				// user = { ...user, groups };
+				userGroups = groups;
+				return yield put( loadGroups( userGroups ) );
 			}
 			break;
 		default:
@@ -267,12 +383,15 @@ function* newMessageRead( payload ) {
 	}
 
 	// yield put( setUser( { ...user, contacts } ) );
-	yield put( setUser( user ) );
+	// yield put( setUser( user ) );
 
 }
 // Watchers
 function* watchCreateGroupConversation () {
 	yield takeEvery( CREATE_GROUP_CONVERSATION, createGroupConversation );
+}
+function* watchAddParticipant () {
+	yield takeEvery( ADD_PARTICIPANTS, asyncAddParticipant );
 }
 function* watchAuthorize () {
 	yield takeEvery( ASYNC_AUTHORIZE, asyncAuthorize );
@@ -297,24 +416,63 @@ function* watchSendMessage ( socket ) {
 		);
 	}
 }
-function* watchJoinGroups ( socket ) {
-	const callback = error => {
-		if ( error) {
-			console.log( 'error:', error );
-		}
-	}
+function* asyncJoinGroups ( socket ) {
+	yield apply(
+		socket,
+		socket.emit,
+		[
+			'client join groups'
+		],
+		{},
+		callback
+	);
+}
+function* watchCloseSocketConnection ( socket ) {
+	console.log( '********* watchCloseSocketConnection *********' );
+	yield take( CLOSE_SOCKET );
+
+	console.log( 'about to close socket' );
+
+	socket.close();
+}
+function* watchUserAddedToGroup ( socket ) {
+	console.log( '********* watchUserAddedToGroup *********');
 
 	while ( true ) {
-		yield take( JOIN_GROUPS );
+		const payload = yield take( USER_ADDED_TO_GROUP );
+		const { participantId } = payload;
+
+		console.log( 'about no notify participants that they were added to a new group')
+		console.log( 'payload', payload );
+
 		yield apply(
 			socket,
 			socket.emit,
 			[
-				'client join groups'
+				'client user added to group',
+				{ participantId }
 			],
-			{},
 			callback
 		);
+	}
+} 
+function* watchJoinGroups ( socket ) {
+	console.log( '********* watchJoinGroups *********');
+
+	while ( true ) {
+		yield take( JOIN_GROUPS );
+		console.log( 'about to join groups' );
+		yield call( asyncJoinGroups, socket );
+
+		// yield apply(
+		// 	socket,
+		// 	socket.emit,
+		// 	[
+		// 		'client join groups'
+		// 	],
+		// 	{},
+		// 	callback
+		// );
 	}
 }
 function* watchJoinConversation ( socket ) {
@@ -335,7 +493,6 @@ function* watchJoinConversation ( socket ) {
 			// console.log( 'loading messages asynchronously' );
 			// asyncLoadMessages( conversationId );
 			console.log( 'about to join conversation' );
-			console.log( 'socket', socket );
 			const { conversationType } = payload;
 
 			yield apply(
@@ -468,20 +625,39 @@ function* listenForMessages ( socketChannel ) {
 
 						// Join to the chats so the user can interact with each contact
 						// yield put( { type: JOIN_CONVERSATION, conversationId } );
-						yield put( joinConversation( { conversationId } ) )
+						yield put(
+							joinConversation( {
+								conversationId,
+								conversationType: 'conversation'
+							} )
+						);
 					}
 				}
-				// connect to available groups
-				for ( let conversationId of user.groups ) {
-					yield put(
-						joinConversation( {
-							conversationId,
-							conversationType: 'group'
-						} ) 
-					);
-				}
+				// // connect to available groups
+				// for ( let conversationId of user.groups ) {
+				// 	yield put(
+				// 		joinConversation( {
+				// 			conversationId,
+				// 			conversationType: 'group'
+				// 		} ) 
+				// 	);
+				// }
 
 				yield put( setUser( { ...user, contacts } ) );
+				break;
+			case 'socketDisconnected':
+				yield put( socketStatus( false ) );
+				// yield put( authorize( false ) );
+				// yield put( setUser( null ) );
+				break;
+			case 'socketReconnect':
+				console.log( '********* socketReconnect *********' );
+				yield put( socketStatus( true ) );
+				yield fetchUser();
+				break;
+			case 'addedToNewGroup':
+				console.log( '********* addedToNewGroup *********' );
+				yield fetchGroups();
 				break;
 			case 'userDisconnected':
 				const disconnectedUser = payload.user;
@@ -508,8 +684,10 @@ function* listenForMessages ( socketChannel ) {
 				} = payload;
 
 				if ( conversationType === 'group' ) {
-					const groups = user.groups.map( group => {
-						if ( group.conversationId === conversationId ) {
+					const groups = userGroups.map( group => {
+						console.log( 'group.conversationId', group.conversationId );
+						console.log( 'typeof group.conversationId', typeof group.conversationId );
+						if ( group.conversationId.toString() === conversationId ) {
 							// Create a copy of the group
 							group = { ...group };
 	
@@ -518,7 +696,10 @@ function* listenForMessages ( socketChannel ) {
 						return group;
 					} );
 
-					user = { ...user, groups };
+					// user = { ...user, groups };
+					userGroups = groups;
+
+					yield put( loadGroups( userGroups ) );
 				} else {
 					contacts = user.contacts.map( contact => {
 						if ( contact.conversationId === conversationId ) {
@@ -530,7 +711,8 @@ function* listenForMessages ( socketChannel ) {
 						return contact;
 					} );
 
-					user = { ...user, contacts };
+					// user = { ...user, contacts };
+					yield put( setUser( { ...user, contacts } ) );
 				}
 				// console.log(
 				// 	'newMessage( payload.message )',
@@ -538,7 +720,7 @@ function* listenForMessages ( socketChannel ) {
 				// );
 				yield put( sendMessage( message ) );
 				// yield put( newMessage( payload.message ) );
-				yield put( setUser( user ) );
+				// yield put( setUser( user ) );
 				break;
 			default:
 				console.log( 'payload', payload );
@@ -553,6 +735,8 @@ function* initializeSocketIO () {
 
 	// explicitly connect user to the chat system
 	yield apply( socket, socket.emit, [ 'client join', user ] );
+	// join user to all chat conversations
+	yield fork( asyncJoinGroups, socket );
 
 	try {
 		// An error will cause the saga to jump to the catch block
@@ -560,6 +744,8 @@ function* initializeSocketIO () {
 		yield fork( watchSendMessage, socket );
 		yield fork( watchJoinConversation, socket );
 		yield fork( watchJoinGroups, socket );
+		yield fork( watchUserAddedToGroup, socket );
+		yield fork( watchCloseSocketConnection, socket );
 
 		console.log( 'socket initialized' );
 		yield put( socketStatus( true ) );
@@ -573,6 +759,7 @@ function* startStopChannel () {
 	console.log( 'about to initialize socket' );
 	yield race( {
 		task: call( initializeSocketIO )
+		// cancel: call( closeSocketIO )
 		// TODO cancel action
 	} );
 }
@@ -587,6 +774,7 @@ export default function* rootSaga () {
 		watchCreateGroupConversation(),
 		watchNewMessageRead(),
 		watchLoadGroups(),
-		startStopChannel(),
+		watchAddParticipant(),
+		startStopChannel()
 	] );
 }
