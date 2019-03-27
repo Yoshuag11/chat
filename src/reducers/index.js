@@ -9,7 +9,8 @@ import {
 	NEW_REQUEST,
 	SOCKET_STATUS,
 	LOAD_MESSAGES,
-	LOAD_GROUPS
+	LOAD_GROUPS,
+	LOAD_DICTIONARY
 } from '../actions'
 import Cookies from 'js-cookie';
 
@@ -19,7 +20,21 @@ import Cookies from 'js-cookie';
 // 	{ message: 'Testing' },
 // 	{ message: 'Messages' }
 // ];
-
+const initDictionary = {
+	"authenticate": {
+		"email": "Email",
+		"password": "Password",
+		"login": {
+			"title": "Welcome",
+			"button": "Log In"
+		},
+		"register": {
+			"title": "Not an user yet?",
+			"subtitle": "Register now!",
+			"button": "Sign In"
+		}
+	}
+};
 const isAuthorized = ( state = !!Cookies.get( 'isAuthorized'), action ) => {
 	switch ( action.type ) {
 		case AUTHORIZE:
@@ -94,6 +109,16 @@ const groups = ( state = [], action ) => {
 			return state;
 	}
 };
+const dictionary = ( state = initDictionary, action ) => {
+	// console.log( '********* dictionary *********');
+	// console.log( 'action', action );
+	switch ( action.type ) {
+		case LOAD_DICTIONARY:
+			return action.dictionary;
+		default:
+			return state;
+	}
+};
 // const newMessage = ( state = null, action ) => {
 // 	switch ( action.type ) {
 // 		case NEW_MESSAGE:
@@ -111,6 +136,7 @@ export default combineReducers( {
 	newRequest,
 	// newMessage,
 	socket,
-	groups
+	groups,
+	dictionary
 	// requests
 } );

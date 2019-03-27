@@ -1,0 +1,55 @@
+{
+	"landingMessage": "Bienvenido",
+	"authenticate": {
+		"email": "Correo",
+		"password": "Contraseña",
+		"login": {
+			"title": "Bienvenido",
+			"button": "Iniciar sesión"
+		},
+		"register": {
+			"title": "¿Aún no eres usuario? !Regístrate ahora!",
+			"username": "Usuario",
+			"button": "Registrar"
+		}
+	},
+	"sidebar": {
+		"languageDropdown": {
+			"title": "Idioma",
+			"english": "Inglés",
+			"spanish": "Español"
+		},
+		"contactsTitle": "Lista de contactos",
+		"groupsTitle": "Grupos",
+		"addContact": "Añadir contacto",
+		"groupModal": {
+			"title": "Nuevo grupo",
+			"nameLabel": "Nombre del grupo",
+			"participantsLabel": "Selecciona los participantes",
+			"submitButton": "Crear",
+			"cancelButton": "Cancelar"
+		},
+		"friendModal": {
+			"title": "Solicitud de amistad",
+			"userLabel": "Correo",
+			"submitButton": "Enviar invitación",
+			"cancelButton": "Cancelar"
+		}
+	},
+	"messageComposer": {
+		"inputPlaceholder": "Escribe algo...",
+		"send": "Enviar"
+	},
+	"chatContent": {
+		"modal": {
+			"title": "Añadir participantes",
+			"submitButton": "Añadir",
+			"cancelButton": "Cancelar",
+			"participantsLabel": "Seleccionar participantes"
+		},
+		"statusHeader": {
+			"addParticipantsButton": "Añadir participantes",
+			"participantsTag": "Participantes"
+		}
+	}
+}

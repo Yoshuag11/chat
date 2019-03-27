@@ -1,14 +1,14 @@
 import React from 'react';
-import PropTypes from 'prop-types';
-import { Link } from 'react-router-dom';
+// import PropTypes from 'prop-types';
+// import { Link } from 'react-router-dom';
 // import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { Badge } from 'react-bootstrap';
+// import { Badge } from 'react-bootstrap';
 
 const StatusHeader = ( {
 		children,
 		// handleModal,
-		newRequest,
-		requests
+		// newRequest,
+		// requests
 		// conversationType
 	} ) => (
 		<header id='status-header'>
@@ -31,7 +31,7 @@ const StatusHeader = ( {
 				</button>
 			)
 			: '' } */}
-			<Link
+			{/* <Link
 				// the "to" property here is doing nothing, it just 
 				to='/requests'
 				data-toggle='dropdown'
@@ -49,26 +49,26 @@ const StatusHeader = ( {
 				>
 					{ requests.length }
 				</Badge>
-			</Link>
-				<div className='dropdown-menu'>
-					{ requests.map( ( request, index ) => (
-						<a
-							key={ index }
-							className='dropdown-item'
-							href='/'
-						>
-							{ request.username }
-						</a>
-					) ) }
-				</div>
+			</Link> */}
+			{/* <div className='dropdown-menu'>
+				{ requests.map( ( request, index ) => (
+					<a
+						key={ index }
+						className='dropdown-item'
+						href='/'
+					>
+						{ request.username }
+					</a>
+				) ) }
+			</div> */}
 		</header>
 	);
 
-StatusHeader.propTypes = {
-	// conversationType: PropTypes.string.isRequired,
-	requests: PropTypes.array.isRequired,
-	newRequest: PropTypes.bool.isRequired
-	// handleModal: PropTypes.func.isRequired
-};
+// StatusHeader.propTypes = {
+// 	// conversationType: PropTypes.string.isRequired,
+// 	// requests: PropTypes.array.isRequired,
+// 	// newRequest: PropTypes.bool.isRequired
+// 	// handleModal: PropTypes.func.isRequired
+// };
 
 export default StatusHeader;

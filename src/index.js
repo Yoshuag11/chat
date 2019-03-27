@@ -13,7 +13,10 @@ import 'bootstrap';
 // import 'bootstrap/dist/css/bootstrap.css';
 import './index.scss';
 import rootSaga from './sagas';
-import { asyncFetchUser } from './actions'
+import {
+	asyncFetchUser,
+	asyncLoadMessage
+} from './actions'
 
 const sagaMiddleware = createSagaMiddleware();
 const store = createStore(
@@ -22,6 +25,9 @@ const store = createStore(
 );
 
 sagaMiddleware.run( rootSaga );
+
+// Get corresponding language dictionary
+store.dispatch( asyncLoadMessage() );
 
 if ( store.getState().isAuthorized ) {
 	store.dispatch( asyncFetchUser() );

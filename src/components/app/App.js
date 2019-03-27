@@ -35,30 +35,34 @@ import { nullOrObject } from '../../utils';
 library.add( faUserPlus, fab, faCircle, faPlus );
 
 class App extends Component {
-	constructor ( props ) {
-		super( props );
+	// constructor ( props ) {
+	// 	super( props );
 
-		this.state = {
-			showModal: false
-		};
-		this.handleToggleModal = this.handleToggleModal.bind( this );
-	}
-	handleToggleModal () {
-		this.setState( {
-			showModal: !this.state.showModal
-		} );
-	}
+	// 	this.state = {
+	// 		showModal: false
+	// 	};
+	// 	this.handleToggleModal = this.handleToggleModal.bind( this );
+	// }
+	// handleToggleModal () {
+	// 	this.setState( {
+	// 		showModal: !this.state.showModal
+	// 	} );
+	// }
 	render() {
 		const {
 			user,
-			groups,
+			// groups,
 			asyncAuthorize,
 			asyncRegister,
 			isAuthorized,
+			dictionary,
+			// newRequest,
+			// requests
 			// newMessage
 			// startChannel,
 			// socket
 		} = this.props;
+		// console.log('********* App -> render *********');
 		return (
 			<Router>
 				<Switch>
@@ -70,6 +74,7 @@ class App extends Component {
 							}
 							return (
 								<Authenticate
+									dictionary={ dictionary.authenticate }
 									asyncRegister={ asyncRegister }
 									asyncAuthorize={ asyncAuthorize } />
 							);
@@ -102,12 +107,15 @@ class App extends Component {
 													exact
 													path='/'
 													render={ () => (
-														<section
-															// className='col-sm-9 ml-sm-auto px-4'
-															className='col-sm-9 px-4'
-														>
-															<h1>Welcome</h1>
-														</section>
+														<h1>{ dictionary.landingMessage }</h1>
+														// <section
+														// 	// className='col-sm-9 ml-sm-auto px-4'
+														// 	// className='col-sm-9 px-4'
+														// 	className='col-sm-7 col-md-9 px-4'
+														// >
+														// 	<h1>{ dictionary.landingMessage }</h1>
+														// 	{/* <h1>Welcome</h1> */}
+														// </section>
 													) }
 												/>
 											</Chat>
@@ -116,12 +124,16 @@ class App extends Component {
 												children={ props => (
 													<Sidebar
 														{ ...props }
-														handleModal={ this.handleToggleModal }
-														showModal={ this.state.showModal }
+														// handleModal={ this.handleToggleModal }
+														// showModal={ this.state.showModal }
+														// newRequest={ newRequest }
 														// newMessage={ newMessage }
-														username={ user.username }
-														contacts={ user.contacts }
-														groups={ groups }
+														// username={ user.username }
+														// contacts={ user.contacts }
+														dictionary={ dictionary.sidebar }
+														// groups={ groups }
+														// requests={ requests }
+														user={ user }
 													/>
 												) }
 											/>
@@ -179,14 +191,18 @@ App.propTypes = {
 	// socket: PropTypes.bool.isRequired,
 	startChannel: PropTypes.func.isRequired,
 	user: nullOrObject,
-	groups: PropTypes.array.isRequired
+	// groups: PropTypes.array.isRequired,
+	// requests: PropTypes.array.isRequired
 	// newMessage: nullOrObject
 };
 
 const mapStateToProps = state => ( {
 	isAuthorized: state.isAuthorized,
 	user: state.user,
-	groups: state.groups
+	// groups: state.groups,
+	dictionary: state.dictionary,
+	// newRequest: state.newRequest,
+	// requests: state.user.requestsReceived
 	// newMessage: state.newMessage
 	// socket: state.socket
 } );

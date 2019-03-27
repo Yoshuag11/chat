@@ -1,13 +1,14 @@
 .sidebar-sticky {
 	position: sticky;
 	top: 0;
-	/* height: calc( 100vh - 48px ); */
 	height: 100vh;
-	padding-top: .5rem;
+	/* padding-top: 5rem; */
 	overflow-x: hidden;
 	overflow-y: auto;
+	/* height: calc( 100vh - 48px ); */
 }
 .sidebar{
+	width: 100%;
 	position: fixed;
 	top: 0;
 	bottom: 0;

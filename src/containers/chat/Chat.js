@@ -92,7 +92,6 @@ class Chat extends React.Component {
 			// newRequest
 		} = this.props;
 		console.log( '********* Chat render *********' );
-		console.log( 'socket', socket );
 		// const { handleToggleModal } = this;
 		if ( !socket ) {
 			return <Loading />;
@@ -103,7 +102,8 @@ class Chat extends React.Component {
 				id='chat'
 				// className='col-sm-10 ml-sm-auto px-4'
 				// className='col-sm-8 ml-sm-auto px-4'
-				className='col-sm-8 px-4'
+				// className='col-sm-8 px-4'
+				className='col-sm-7 col-md-8 col-lg-9 px-4'
 			>
 				{/* <Modal
 					handleModal={ handleToggleModal }

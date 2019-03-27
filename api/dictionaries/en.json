@@ -1,0 +1,15 @@
+{
+	"authenticate": {
+		"email": "Email",
+		"password": "Password",
+		"login": {
+			"title": "Welcome",
+			"button": "Log In"
+		},
+		"register": {
+			"title": "Not an user yet? Register now!",
+			"username": "Username",
+			"button": "Sign In"
+		}
+	}
+}

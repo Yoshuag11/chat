@@ -1,4 +1,6 @@
 const express = require( 'express' );
+const fs = require( 'fs' );
+const path = require( 'path' );
 const jwt = require( 'jsonwebtoken' );
 const session = require( 'express-session' );
 const cookieParser = require( 'cookie-parser' );
@@ -96,9 +98,16 @@ db.once( 'open', function () {
 		currentSession = req.session;
 		res.setHeader( 'Content-type', 'application/json' );
 
+		console.log( 'req.connection.remoteAddress', req.connection.remoteAddress );
+		console.log( 'req.headers[ x-forwarded-for ]', req.headers[ 'x-forwarded-for' ] );
+		console.log( 'req.headers[ accept-language ]', req.headers[ 'accept-language' ] );
+		console.log( 'req.acceptsLanguages()', req.acceptsLanguages() );
+
+		// const ip = req.headers[ 'x-forwarded-for' ] || req.connection.remoteAddress;
+
 		const path = req.url;
 
-		if ( path === '/register' ) {
+		if ( path === '/register' || path === '/dictionary' ) {
 			return next();
 		}
 
@@ -583,6 +592,23 @@ db.once( 'open', function () {
 	app.get( '/user', ( req, res ) => {
 		authenticateSuccess( res, req.user );
 	} );
+	app.get( '/dictionary', async ( req, res ) => {
+		console.log( '********* GET "/dictionary" *********' );
+		const language = 'es';
+		const dictionaryPath =
+			path.resolve( 'api', 'dictionaries', `${ language }.json` );
+
+		fs.readFile( dictionaryPath, ( err, content)	 => {
+			if ( err ) {
+				console.log( 'err', err );
+				return responseError( res, 'Error trying to get dictionary', 400 );
+			}
+
+			const dictionary = JSON.parse( content );
+
+			res.send( dictionary );
+		} );
+	} );
 	app.get( '/conversation/:id', async ( req, res ) => {
 		const contact = req.user.contacts.find(
 				contact => contact.conversationId = req.params.id
@@ -804,7 +830,7 @@ db.once( 'open', function () {
 						}
 					);
 		} );
-		socket.on( 'client join groups', async () => {
+		socket.on( 'client join groups', async callback => {
 			console.log( '********* client join groups *********' );
 			console.log( 'trying to join groups' );
 			const userData =

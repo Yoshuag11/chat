@@ -1,12 +1,19 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import moment from 'moment';
+import 'moment/locale/es';
 import {
 	createMessage
 	// joinConversation
 } from '../../actions';
 import { connect } from 'react-redux';
 import MessageComposer from '../../components/message-composer/MessageComposer';
+
+
+console.log( 'moment.locale()', moment.locale() );
+
+moment.locale( 'es' );
+console.log( 'moment.locale()', moment.locale() );
 
 class Conversation extends React.Component {
 	// componentDidMount () {
@@ -24,8 +31,9 @@ class Conversation extends React.Component {
 			conversationId,
 			conversationType,
 			messages,
+			dictionary
 		} = this.props;
-		console.log( 'this.props', this.props );
+		// console.log( 'this.props', this.props );
 		return (
 			<>
 				<ul className='messages-container'>
@@ -58,15 +66,16 @@ class Conversation extends React.Component {
 							// it is not big deal since when user changes from chat,
 							// the whole conversation is loaded, which will contain the
 							// the whole conversation up-to-date
-							console.log( 'requirements not fulfilled' );
-							console.log( 'message', message );
-							console.log( 'messageConversationId', messageConversationId );
-							console.log( 'conversationId', conversationId );
+							// console.log( 'requirements not fulfilled' );
+							// console.log( 'message', message );
+							// console.log( 'messageConversationId', messageConversationId );
+							// console.log( 'conversationId', conversationId );
 							return '';
 						}
 					 } ) }
 				</ul>
 				<MessageComposer
+					dictionary={ dictionary }
 					conversationType={ conversationType }
 					createMessage={ createMessage }
 					conversationId={ conversationId }
@@ -77,7 +86,8 @@ class Conversation extends React.Component {
 }
 
 const mapStateToProps = state => ( {
-	messages: state.messages
+	messages: state.messages,
+	dictionary: state.dictionary.messageComposer
 } );
 
 Conversation.propTypes = {

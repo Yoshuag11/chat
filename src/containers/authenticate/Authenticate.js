@@ -36,15 +36,21 @@ class Authenticate extends React.Component {
 		this.props.asyncRegister( payload );
 	}
 	render () {
+		const {
+			dictionary
+		} = this.props;
+		const { login, register } = dictionary;
 		return (
 			<div className='container'>
 				<div className='row'>
 					<div className='col-sm'>
 						<form onSubmit={ this.handleSubmitLogIn }>
 							<fieldset>
-								<legend>Welcome</legend>
+								<legend>{ login.title }</legend>
+								{/* <legend>Welcome</legend> */}
 								<div className='form-group'>
-									<label htmlFor='email'>Email</label>
+									<label htmlFor='email'>{ dictionary.email }</label>
+									{/* <label htmlFor='email'>Email</label> */}
 									<input
 										required
 										className='form-control'
@@ -53,7 +59,7 @@ class Authenticate extends React.Component {
 										id='email' />
 								</div>
 								<div className='form-group'>
-									<label htmlFor='password'>Password</label>
+									<label htmlFor='password'>{ dictionary.password }</label>
 									<input
 										required
 										className='form-control'
@@ -65,7 +71,7 @@ class Authenticate extends React.Component {
 									type='submit'
 									className='btn btn-primary'
 								>
-									Log In
+									{ login.button }
 								</button>
 							</fieldset>
 						</form>
@@ -73,9 +79,10 @@ class Authenticate extends React.Component {
 					<div className='col-sm'>
 						<form onSubmit={ this.handleSubmitSignIn }>
 							<fieldset>
-								<legend>Not an user yet? Register now!</legend>
+								<legend>{ register.title }</legend>
+								{/* <legend>Not an user yet? Register now!</legend> */}
 								<div className='form-group'>
-									<label htmlFor='reg_email'>Email</label>
+									<label htmlFor='reg_email'>{ dictionary.email }</label>
 									<input
 										required
 										type='email'
@@ -87,7 +94,8 @@ class Authenticate extends React.Component {
 									/>
 								</div>
 								<div className='form-group'>
-									<label htmlFor='reg_user'>User Name</label>
+									<label htmlFor='reg_user'>{ register.username }</label>
+									{/* <label htmlFor='reg_user'>User Name</label> */}
 									<input
 										type='text'
 										id='reg_user'
@@ -98,7 +106,7 @@ class Authenticate extends React.Component {
 									/>
 								</div>
 								<div className='form-group'>
-									<label htmlFor='reg_password'>Password</label>
+									<label htmlFor='reg_password'>{ dictionary.password }</label>
 									<input
 										type='password'
 										id='reg_password'
@@ -112,7 +120,7 @@ class Authenticate extends React.Component {
 									type='submit'
 									className='btn btn-dark'
 								>
-									Sign In
+									{ register.button }
 								</button>
 							</fieldset>
 						</form>
@@ -124,7 +132,8 @@ class Authenticate extends React.Component {
 }
 Authenticate.propTypes = {
 	asyncRegister: PropTypes.func.isRequired,
-	asyncAuthorize: PropTypes.func.isRequired
+	asyncAuthorize: PropTypes.func.isRequired,
+	dictionary: PropTypes.object.isRequired
 };
 
 export default Authenticate;

@@ -4,12 +4,18 @@ import './MessageComposer.css'
 
 let input;
 
-const MessageComposer = ( { createMessage, conversationId, conversationType } ) => (
+const MessageComposer = ( {
+	createMessage,
+	conversationId,
+	conversationType,
+	dictionary
+} ) => (
 	<div className='input-group message-composer'>
 		<input
 			className='form-control mt-auto'
 			type='text'
-			placeholder='Write something...'
+			placeholder={ dictionary.inputPlaceholder }
+			// placeholder='Write something...'
 			onKeyUp={ e => {
 				if ( e.key === 'Enter' ) {
 					createMessage( {
@@ -38,7 +44,8 @@ const MessageComposer = ( { createMessage, conversationId, conversationType } ) 
 					input.value = '';
 				} }
 			>
-				Send
+				{ dictionary.send }
+				{/* Send */}
 			</button>
 		</div>
 	</div>

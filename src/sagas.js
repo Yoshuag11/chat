@@ -16,6 +16,7 @@ import {
 	joinConversation,
 	joinGroups,
 	userAddedToGroup,
+	loadDictionary,
 	ASYNC_AUTHORIZE,
 	START_CHANNEL,
 	CREATE_MESSAGE,
@@ -30,7 +31,8 @@ import {
 	JOIN_GROUPS,
 	ADD_PARTICIPANTS,
 	USER_ADDED_TO_GROUP,
-	CLOSE_SOCKET
+	CLOSE_SOCKET,
+	ASYNC_LOAD_DICTIONARY
 	// ASYNC_FETCH_REQUESTS
 } from './actions';
 import { createWebSocketConnection } from './socket';
@@ -123,9 +125,8 @@ function* sendRequest ( path = '', method = 'GET', payload = {} ) {
 		options.headers = { 'Content-Type': 'application/json' };
 		options.body = JSON.stringify( payload );
 	}
-	const response = yield fetch( `${ apiHost }/${ path }`, options );
 
-	console.log( 'response', response );
+	const response = yield fetch( `${ apiHost }/${ path }`, options );
 
 	if ( response.status === 401 ) {
 		yield put( setUser( null ) );
@@ -200,7 +201,7 @@ function* fetchMessages ( payload ) {
 			const conversation = yield response.json();
 	
 			console.log( 'conversation loaded' );
-			console.log( 'conversation', conversation );
+			// console.log( 'conversation', conversation );
 			yield put( loadMessages( conversation.messages ) );
 		} else {
 			console.log( 'error', response );
@@ -225,18 +226,17 @@ function* fetchMessages ( payload ) {
 function* fetchGroups () {
 	console.log( '********* fetchGroups *********' );
 	const response = yield sendRequest( 'groups' );
-	console.log( 'response', response );
 
 	if ( response.ok ) {
 		const groups = yield response.json();
 
 		console.log( 'groups loaded' );
-		console.log( 'groups', groups );
-		// connect all groups
+		// console.log( 'groups', groups );
 
 		userGroups = groups;
 
 		yield put( loadGroups( userGroups ) );
+		// connect all groups
 		yield put( joinGroups() );
 	} else {
 		// TODO: handle error
@@ -294,15 +294,31 @@ function* fetchUser () {
 // 	// TODO: handle error
 // 	yield put( setUser( user ) );
 // }
+function* asyncLoadDictionary () {
+	console.log( '********* asyncLoadDictionary *********' );
+	const response = yield sendRequest( 'dictionary' );
+
+	if ( response.ok ) {
+		const dictionary = yield response.json();
+
+		yield put( loadDictionary( dictionary ) );
+	}
+}
 function* asyncRegister ( { email, username, password } ) {
-	const options = {
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json'
-		},
-		body: JSON.stringify( { email, username, password } )
-	};
-	const resp = yield fetch( `${ apiHost }/register`, options );
+	// const options = {
+	// 	method: 'POST',
+	// 	headers: {
+	// 		'Content-Type': 'application/json'
+	// 	},
+	// 	body: JSON.stringify( { email, username, password } )
+	// };
+	// const resp = yield fetch( `${ apiHost }/register`, options );
+	const resp =
+		yield sendRequest(
+			`${ apiHost }/register`,
+			'POST',
+			{ email, username, password }
+		);
 	const responseOK = resp.ok;
 	let user;
 
@@ -321,7 +337,7 @@ function* request ( { to } ) {
 }
 function* newMessageRead( payload ) {
 	console.log( 'trying to set a message as read' );
-	console.log( 'payload', payload );
+	// console.log( 'payload', payload );
 	// TODO: add error when conversationId was not provided
 	let user = yield select( getUser );
 	const { conversationId, conversationType } = payload;
@@ -349,7 +365,7 @@ function* newMessageRead( payload ) {
 			}
 			break;
 		case 'group':
-			console.log( 'userGroups', userGroups );
+			// console.log( 'userGroups', userGroups );
 			const group = userGroups.find(
 				// group.conversationId is a string value
 				group => group.conversationId === conversationId && group.newMessage
@@ -421,10 +437,9 @@ function* asyncJoinGroups ( socket ) {
 		socket,
 		socket.emit,
 		[
-			'client join groups'
-		],
-		{},
-		callback
+			'client join groups',
+			callback
+		]
 	);
 }
 function* watchCloseSocketConnection ( socket ) {
@@ -451,8 +466,7 @@ function* watchUserAddedToGroup ( socket ) {
 			[
 				'client user added to group',
 				{ participantId }
-			],
-			callback
+			]
 		);
 	}
 } 
@@ -463,25 +477,17 @@ function* watchJoinGroups ( socket ) {
 		yield take( JOIN_GROUPS );
 		console.log( 'about to join groups' );
 		yield call( asyncJoinGroups, socket );
-
 		// yield apply(
 		// 	socket,
 		// 	socket.emit,
 		// 	[
-		// 		'client join groups'
-		// 	],
-		// 	{},
-		// 	callback
+		// 		'client join groups',
+		// 		callback
+		// 	]
 		// );
 	}
 }
 function* watchJoinConversation ( socket ) {
-	const callback = error => {
-		if ( error) {
-			console.log( 'error:', error );
-		}
-	}
-
 	while ( true ) {
 		const payload = yield take( JOIN_CONVERSATION );
 		const conversationId = payload.conversationId;
@@ -512,6 +518,9 @@ function* watchJoinConversation ( socket ) {
 			conversationsJoined.push( conversationId );
 		};
 	}
+}
+function* watchLoadDictionary () {
+	yield takeEvery( ASYNC_LOAD_DICTIONARY, asyncLoadDictionary );
 }
 function* watchFetchUser () {
 	yield takeEvery( ASYNC_FETCH_USER, fetchUser );
@@ -597,7 +606,7 @@ function* listenForMessages ( socketChannel ) {
 				break;
 			case 'connectedUsers':
 				console.log( 'connected users' );
-				console.log( 'payload', payload );
+				// console.log( 'payload', payload );
 				const { connectedUsers } = payload;
 				const contactsToConnectTo = [];
 
@@ -775,6 +784,7 @@ export default function* rootSaga () {
 		watchNewMessageRead(),
 		watchLoadGroups(),
 		watchAddParticipant(),
+		watchLoadDictionary(),
 		startStopChannel()
 	] );
 }

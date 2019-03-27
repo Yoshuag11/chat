@@ -25,6 +25,7 @@ class MyModal extends React.Component {
 			children,
 			title = 'title',
 			submitButton = 'OK',
+			cancelButton = 'Cancel',
 			submitHandler = () => {}
 		} = this.props;
 		return (
@@ -40,7 +41,7 @@ class MyModal extends React.Component {
 						variant='secondary'
 						onClick={ handleModal }
 					>
-						Cancel
+						{ cancelButton }
 					</Button>
 					<Button
 						// onClick={ this.handleSubmit }

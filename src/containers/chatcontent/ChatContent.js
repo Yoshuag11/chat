@@ -133,11 +133,16 @@ class ChatContent extends React.Component {
 	}
 	render () {
 		const {
-			newRequest,
+			// newRequest,
 			contacts,
-			requests,
-			groups
+			// requests,
+			groups,
+			dictionary
 		} = this.props;
+		const {
+			modal,
+			statusHeader
+		} = dictionary;
 		const {
 			conversationId, conversationType
 		} = this.handleGetConversationData();
@@ -179,21 +184,25 @@ class ChatContent extends React.Component {
 		// 			group => group.conversationId === conversationId
 		// 		).participants.map( participant => participant.username )
 		// 	).join( ', ');
-		console.log( 'title', title );
-		console.log( 'participants', participants );
+		// console.log( 'title', title );
+		// console.log( 'participants', participants );
 		return (
 			<>
 				<Modal
 					handleModal={ handleToggleModal }
 					showModal={ state.showModal }
-					title='Add User(s)'
-					submitButton='Add'
+					title={ modal.title }
+					// title='Add participants'
+					submitButton={ modal.submitButton }
+					// submitButton='Add'
+					cancelButton={ modal.cancelButton }
 					// submitButton='Send Invitation'
 					submitHandler={ handleSubmit }
 				>
 					<Form>
 						<Form.Group controlId='sidebarModalUserSelector'>
-							<Form.Label>Select users</Form.Label>
+							<Form.Label>{ modal.participantsLabel }</Form.Label>
+							{/* <Form.Label>Select participants</Form.Label> */}
 							<Form.Control
 								value={ this.state.users }
 								as='select'
@@ -224,10 +233,10 @@ class ChatContent extends React.Component {
 					</form> */}
 				</Modal>
 				<StatusHeader
-					newRequest={ newRequest}
+					// newRequest={ newRequest}
 					// handleModal={ handleToggleModal }
 					// username={ username }
-					requests={ requests }
+					// requests={ requests }
 					// conversationType={ conversationType }
 				>
 					<h1>
@@ -240,7 +249,8 @@ class ChatContent extends React.Component {
 									to='/add_contact'
 									onClick={ handleToggleModal }
 								>
-									Add participant(s)
+									{ statusHeader.addParticipantsButton }
+									{/* Add participants */}
 									<FontAwesomeIcon
 										className='fa-pull-right'
 										size='lg'
@@ -253,7 +263,8 @@ class ChatContent extends React.Component {
 					</h1>
 					{ participants
 						? (
-							<h3>Participants: { participants }</h3>
+							<h3>{ statusHeader.participantsTag }: { participants }</h3>
+							// <h3>Participants: { participants }</h3>
 						)
 						: '' }
 				</StatusHeader>
@@ -268,21 +279,23 @@ class ChatContent extends React.Component {
 
 ChatContent.propTypes = {
 	contacts: PropTypes.array.isRequired,
-	requests: PropTypes.array.isRequired,
+	// requests: PropTypes.array.isRequired,
 	groups: PropTypes.array.isRequired,
-	newRequest: PropTypes.bool.isRequired,
+	// newRequest: PropTypes.bool.isRequired,
 	joinConversation: PropTypes.func.isRequired,
 	asyncLoadMessages: PropTypes.func.isRequired,
 	newMessageRead: PropTypes.func.isRequired,
 	asyncRequest: PropTypes.func.isRequired,
-	addParticipants: PropTypes.func.isRequired
+	addParticipants: PropTypes.func.isRequired,
+	dictionary: PropTypes.object.isRequired
 };
 
 const mapStateToProps = state => ( {
 	contacts: state.user.contacts,
 	groups: state.groups,
-	requests: state.user.requestsReceived,
-	newRequest: state.newRequest,
+	dictionary: state.dictionary.chatContent
+	// requests: state.user.requestsReceived
+	// newRequest: state.newRequest,
 } );
 
 export default connect(
