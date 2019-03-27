@@ -2,6 +2,16 @@
 	margin-top: auto!important;
 }
 .message-composer {
+	/* width: 80%; */
 	/* position: fixed; */
 	/* bottom: -350px; */
+	/* position: relative; */
+	/* position: absolute;
+	bottom: 40px; */
+}
+.message-composer .input-group {
+	/* position: absolute; */
+	/* position: relative; */
+	/* bottom: -40px; */
+	/* bottom: 0; */
 }

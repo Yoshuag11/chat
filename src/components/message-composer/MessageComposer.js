@@ -10,43 +10,45 @@ const MessageComposer = ( {
 	conversationType,
 	dictionary
 } ) => (
-	<div className='input-group message-composer'>
-		<input
-			className='form-control mt-auto'
-			type='text'
-			placeholder={ dictionary.inputPlaceholder }
-			// placeholder='Write something...'
-			onKeyUp={ e => {
-				if ( e.key === 'Enter' ) {
-					createMessage( {
-						conversationId,
-						conversationType,
-						message: input.value.trim()
-					} );
+	<div className='message-composer'>
+		<div className='input-group'>
+			<input
+				className='form-control mt-auto'
+				type='text'
+				placeholder={ dictionary.inputPlaceholder }
+				// placeholder='Write something...'
+				onKeyUp={ e => {
+					if ( e.key === 'Enter' ) {
+						createMessage( {
+							conversationId,
+							conversationType,
+							message: input.value.trim()
+						} );
 
-					input.value = '';
-				}
-			} }
-			ref={ node => input = node }
-		/>
-		<div className='input-group-append'>
-			<button
-				type='button'
-				className='btn btn-primary'
-				onClick={ e => {
-					// createMessage( conversationId, input.value.trim() );
-					createMessage( {
-						conversationId,
-						conversationType,
-						message: input.value.trim()
-					} );
-
-					input.value = '';
+						input.value = '';
+					}
 				} }
-			>
-				{ dictionary.send }
-				{/* Send */}
-			</button>
+				ref={ node => input = node }
+			/>
+			<div className='input-group-append'>
+				<button
+					type='button'
+					className='btn btn-primary'
+					onClick={ e => {
+						// createMessage( conversationId, input.value.trim() );
+						createMessage( {
+							conversationId,
+							conversationType,
+							message: input.value.trim()
+						} );
+
+						input.value = '';
+					} }
+				>
+					{ dictionary.send }
+					{/* Send */}
+				</button>
+			</div>
 		</div>
 	</div>
 );

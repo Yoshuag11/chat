@@ -107,10 +107,144 @@ class Sidebar extends React.Component {
 			languageDropdown
 		} = dictionary;
 		return (
-			<nav
-				// className='col-sm-3 d-done d-sm-block bg-primary order-sm-first sidebar'
-				className='col-sm-5 col-md-4 col-lg-3 navbar navbar-expand-lg navbar-dark bg-primary order-sm-first sidebar'
-			>
+			<div className='col-sm-5 col-md-4 col-lg-3 order-sm-first bg-primary'>
+				{/* <div id='sidebar' className='sidebar-sticky'> */}
+				<nav
+					// className='col-sm-3 d-done d-sm-block bg-primary order-sm-first sidebar'
+					className='navbar navbar-expand-lg navbar-dark'
+				>
+					<span className='navbar-brand mb-0 h1'>{ username }</span>
+					{/* <a className="navbar-brand" href="#">Navbar</a> */}
+					{/* <a className='navbar-brand' href='#'>{ username }</a> */}
+					{/* <h1 className='d-inline-block'>
+						{ username }
+					</h1> */}
+					<button
+						className='navbar-toggler'
+						type='button'
+						data-toggle='collapse'
+						data-target='#navbarNav'
+						aria-controls='navbarNav'
+						aria-expanded='false'
+						aria-label='Toggle navigation'
+					>
+						<span className='navbar-toggler-icon'></span>
+					</button>
+					<div
+						className='collapse navbar-collapse'
+						id='navbarNav'
+					>
+						<ul className='navbar-nav'>
+							<li className='nav-item dropdown'>
+								{/* <Badge pill
+									data-toggle='dropdown'
+									aria-haspopup='true'
+									aria-expanded='false'
+									variant={
+										newRequest
+										? 'danger'
+										:	requests.length > 0
+											? 'light'
+											: 'secondary'
+									}
+								>
+									{ requests.length }
+								</Badge>
+								<div className='dropdown-menu'>
+									{ requests.map( ( request, index ) => (
+										<a
+											key={ index }
+											className='dropdown-item'
+											href='/'
+										>
+											{ request.username }
+										</a>
+									) ) }
+								</div> */}
+								<button
+									// the "to" property here is doing nothing, it just 
+									// to='/requests'
+									data-toggle='dropdown'
+									aria-haspopup='true'
+									aria-expanded='false'
+									className='btn btn-primary'
+									// className="float-right"
+								>
+									<Badge pill
+										variant={
+											newRequest
+											? 'danger'
+											:	requests.length > 0
+												? 'light'
+												: 'secondary'
+										}
+									>
+										{ requests.length }
+									</Badge>
+								</button>
+								<div className='dropdown-menu'>
+									{ requests.map( ( request, index ) => (
+										<a
+											key={ index }
+											className='dropdown-item'
+											href='/'
+										>
+											{ request.username }
+										</a>
+									) ) }
+								</div>
+							</li>
+							<li className='nav-item dropdown'>
+								<button
+									className='btn btn-primary dropdown-toggle'
+									// className='btn btn-primary dropdown-toggle float-right'
+									// href='#'
+									id='navbarLanguageDropDown'
+									// role="button"
+									data-toggle='dropdown'
+									aria-haspopup='true'
+									aria-expanded='false'
+								>
+									{ languageDropdown.title }
+								</button>
+								<div
+									className='dropdown-menu'
+									aria-labelledby='navbarLanguageDropDown'
+								>
+									<button className='dropdown-item'>
+										{ languageDropdown.english }
+									</button>
+									<button className='dropdown-item'>
+										{ languageDropdown.spanish }
+									</button>
+								</div>
+							</li>
+						</ul>
+					</div>
+					{/* <button
+						className='btn btn-primary dropdown-toggle'
+						// className='btn btn-primary dropdown-toggle float-right'
+						// href='#'
+						id='navbarLanguageDropDown'
+						// role="button"
+						data-toggle='dropdown'
+						aria-haspopup='true'
+						aria-expanded='false'
+					>
+						{ languageDropdown.title }
+					</button>
+					<div
+						className='dropdown-menu'
+						aria-labelledby='navbarLanguageDropDown'
+					>
+						<button className='dropdown-item'>
+							{ languageDropdown.english }
+						</button>
+						<button className='dropdown-item'>
+							{ languageDropdown.spanish }
+						</button>
+					</div> */}
+				</nav>
 				<Modal
 					handleModal={ this.handleToggleGroupModal }
 					showModal={ this.state.showGroupModal }
@@ -187,64 +321,6 @@ class Sidebar extends React.Component {
 					</Form>
 				</Modal>
 				<div id='sidebar' className='sidebar-sticky'>
-					<span className='navbar-brand mb-0 h1'>{ username }</span>
-					{/* <a className='navbar-brand' href='#'>{ username }</a> */}
-					{/* <h1 className='d-inline-block'>
-						{ username }
-					</h1> */}
-					<Link
-						// the "to" property here is doing nothing, it just 
-						to='/requests'
-						data-toggle='dropdown'
-						aria-haspopup='true'
-						aria-expanded='false'
-						className="float-right"
-					>
-						<Badge pill
-							variant={
-								newRequest
-								? 'danger'
-								:	requests.length > 0
-									? 'light'
-									: 'secondary'
-							}
-						>
-							{ requests.length }
-						</Badge>
-					</Link>
-					<button
-						className='btn btn-primary dropdown-toggle float-right'
-						// href='#'
-						id='navbarLanguageDropDown'
-						// role="button"
-						data-toggle='dropdown'
-						aria-haspopup='true'
-						aria-expanded='false'
-					>
-						{ languageDropdown.title }
-					</button>
-					<div className='dropdown-menu'>
-						{ requests.map( ( request, index ) => (
-							<a
-								key={ index }
-								className='dropdown-item'
-								href='/'
-							>
-								{ request.username }
-							</a>
-						) ) }
-					</div>
-					<div
-						className='dropdown-menu'
-						aria-labelledby='navbarLanguageDropDown'
-					>
-						<button className='dropdown-item'>
-							{ languageDropdown.english }
-						</button>
-						<button className='dropdown-item'>
-							{ languageDropdown.spanish }
-						</button>
-					</div>
 					<div>
 						<button
 							className='btn btn-primary'
@@ -330,7 +406,9 @@ class Sidebar extends React.Component {
 					</ul>
 					<ul className='group-list'></ul>
 				</div>
-			</nav>
+				{/* </nav> */}
+				{/* </div> */}
+			</div>
 		);
 	}
 }

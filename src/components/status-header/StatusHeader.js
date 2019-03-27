@@ -3,6 +3,7 @@ import React from 'react';
 // import { Link } from 'react-router-dom';
 // import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 // import { Badge } from 'react-bootstrap';
+import './StatusHeader.css';
 
 const StatusHeader = ( {
 		children,
@@ -11,9 +12,10 @@ const StatusHeader = ( {
 		// requests
 		// conversationType
 	} ) => (
-		<header id='status-header'>
+		<header className='status-header' id='status-header'>
 			{/* <h3>{ username }</h3> */}
 			{ children }
+			<hr />
 			{/* { conversationType === 'group'
 			? (
 				<button

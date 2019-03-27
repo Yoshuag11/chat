@@ -1,4 +1,5 @@
 .sidebar-sticky {
+	width: 100%;
 	position: sticky;
 	top: 0;
 	height: 100vh;
@@ -7,7 +8,7 @@
 	overflow-y: auto;
 	/* height: calc( 100vh - 48px ); */
 }
-.sidebar{
+.sidebar {
 	width: 100%;
 	position: fixed;
 	top: 0;
