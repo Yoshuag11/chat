@@ -15,7 +15,7 @@ import './index.scss';
 import rootSaga from './sagas';
 import {
 	asyncFetchUser,
-	asyncLoadMessage
+	asyncLoadDictionary
 } from './actions'
 
 const sagaMiddleware = createSagaMiddleware();
@@ -27,7 +27,7 @@ const store = createStore(
 sagaMiddleware.run( rootSaga );
 
 // Get corresponding language dictionary
-store.dispatch( asyncLoadMessage() );
+store.dispatch( asyncLoadDictionary() );
 
 if ( store.getState().isAuthorized ) {
 	store.dispatch( asyncFetchUser() );

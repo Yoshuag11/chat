@@ -10,7 +10,8 @@ import { Form } from 'react-bootstrap';
 import {
 	// newMessageRead
 	createGroupConversation,
-	asyncRequest
+	asyncRequest,
+	asyncSetDictionary
 } from '../../actions';
 import {
 	connect
@@ -36,6 +37,9 @@ class Sidebar extends React.Component {
 		this.handleSubmitFriendRequest = this.handleSubmitFriendRequest.bind( this );
 		this.handleToggleFriendModal = this.handleToggleFriendModal.bind( this );
 		this.handleToggleGroupModal = this.handleToggleGroupModal.bind( this );
+	}
+	handleChangeLanguage ( language ) {
+		this.props.asyncSetDictionary( language );
 	}
 	handleToggleFriendModal () {
 		this.setState( {
@@ -211,10 +215,16 @@ class Sidebar extends React.Component {
 									className='dropdown-menu'
 									aria-labelledby='navbarLanguageDropDown'
 								>
-									<button className='dropdown-item'>
+									<button
+										className='dropdown-item'
+										onClick={ this.handleChangeLanguage.bind( this, 'en' ) }
+									>
 										{ languageDropdown.english }
 									</button>
-									<button className='dropdown-item'>
+									<button
+										className='dropdown-item'
+										onClick={ this.handleChangeLanguage.bind( this, 'es' ) }
+									>
 										{ languageDropdown.spanish }
 									</button>
 								</div>
@@ -539,7 +549,8 @@ Sidebar.propTypes = {
 	asyncRequest: PropTypes.func.isRequired,
 	newRequest: PropTypes.bool.isRequired,
 	// requests: PropTypes.array.isRequired,
-	user: PropTypes.object.isRequired
+	user: PropTypes.object.isRequired,
+	asyncSetDictionary: PropTypes.func.isRequired
 };
 
 const mapStateToProps = state => ( {
@@ -553,7 +564,8 @@ export default connect(
 	mapStateToProps,
 	{
 		createGroupConversation,
-		asyncRequest
+		asyncRequest,
+		asyncSetDictionary
 		// newMessageRead
 	}
 )( Sidebar );

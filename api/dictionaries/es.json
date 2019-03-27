@@ -19,12 +19,12 @@
 			"english": "Inglés",
 			"spanish": "Español"
 		},
-		"contactsTitle": "Lista de contactos",
+		"contactsTitle": "Contactos",
 		"groupsTitle": "Grupos",
 		"addContact": "Añadir contacto",
 		"groupModal": {
 			"title": "Nuevo grupo",
-			"nameLabel": "Nombre del grupo",
+			"nameLabel": "Nombre",
 			"participantsLabel": "Selecciona los participantes",
 			"submitButton": "Crear",
 			"cancelButton": "Cancelar"

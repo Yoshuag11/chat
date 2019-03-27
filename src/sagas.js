@@ -32,7 +32,8 @@ import {
 	ADD_PARTICIPANTS,
 	USER_ADDED_TO_GROUP,
 	CLOSE_SOCKET,
-	ASYNC_LOAD_DICTIONARY
+	ASYNC_LOAD_DICTIONARY,
+	ASYNC_SET_DICTIONARY
 	// ASYNC_FETCH_REQUESTS
 } from './actions';
 import { createWebSocketConnection } from './socket';
@@ -304,6 +305,21 @@ function* asyncLoadDictionary () {
 		yield put( loadDictionary( dictionary ) );
 	}
 }
+function* asyncSetDictionary ( payload ) {
+	console.log( '********* asyncSetDictionary *********' );
+	const { language } = payload;
+	const response = yield sendRequest(
+		'dictionary',
+		'POST',
+		{ language }
+	);
+
+	if ( response.ok ) {
+		const dictionary = yield response.json();
+
+		yield put( loadDictionary( dictionary ) );
+	}
+}
 function* asyncRegister ( { email, username, password } ) {
 	// const options = {
 	// 	method: 'POST',
@@ -521,6 +537,9 @@ function* watchJoinConversation ( socket ) {
 }
 function* watchLoadDictionary () {
 	yield takeEvery( ASYNC_LOAD_DICTIONARY, asyncLoadDictionary );
+}
+function* watchSetDictionary () {
+	yield takeEvery( ASYNC_SET_DICTIONARY, asyncSetDictionary );
 }
 function* watchFetchUser () {
 	yield takeEvery( ASYNC_FETCH_USER, fetchUser );
@@ -785,6 +804,7 @@ export default function* rootSaga () {
 		watchLoadGroups(),
 		watchAddParticipant(),
 		watchLoadDictionary(),
+		watchSetDictionary(),
 		startStopChannel()
 	] );
 }

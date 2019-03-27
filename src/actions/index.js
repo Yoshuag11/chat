@@ -28,6 +28,7 @@ export const USER_ADDED_TO_GROUP = 'USER_ADDED_TO_GROUP';
 export const CLOSE_SOCKET = 'CLOSE_SOCKET';
 export const LOAD_DICTIONARY = 'LOAD_DICTIONARY';
 export const ASYNC_LOAD_DICTIONARY = 'ASYNC_LOAD_DICTIONARY';
+export const ASYNC_SET_DICTIONARY = 'ASYNC_SET_DICTIONARY';
 
 const action = (type, payload = {}) => ( { type, ...payload } );
 
@@ -67,4 +68,6 @@ export const userAddedToGroup =
 export const closeSocket = () => action( CLOSE_SOCKET );
 export const loadDictionary =
 	dictionary => action( LOAD_DICTIONARY, { dictionary } );
-export const asyncLoadMessage =  () => action( ASYNC_LOAD_DICTIONARY );
+export const asyncLoadDictionary =  () => action( ASYNC_LOAD_DICTIONARY );
+export const asyncSetDictionary =
+	language => action( ASYNC_SET_DICTIONARY, { language } );

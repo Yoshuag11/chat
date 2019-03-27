@@ -90,7 +90,6 @@ db.once( 'open', function () {
 			// maxAge: 60 * 1000 // two minutes
 		}
 	} ) );
-	// TODO: add middleware to validate whether user is logged in or not
 	app.use( express.json() );
 	app.use( express.urlencoded( { extended: true } ) );
 	app.use( cookieParser() );
@@ -98,16 +97,18 @@ db.once( 'open', function () {
 		currentSession = req.session;
 		res.setHeader( 'Content-type', 'application/json' );
 
-		console.log( 'req.connection.remoteAddress', req.connection.remoteAddress );
-		console.log( 'req.headers[ x-forwarded-for ]', req.headers[ 'x-forwarded-for' ] );
-		console.log( 'req.headers[ accept-language ]', req.headers[ 'accept-language' ] );
-		console.log( 'req.acceptsLanguages()', req.acceptsLanguages() );
+		// console.log( 'req.connection.remoteAddress', req.connection.remoteAddress );
+		// console.log( 'req.headers[ x-forwarded-for ]', req.headers[ 'x-forwarded-for' ] );
+		// console.log( 'req.headers[ accept-language ]', req.headers[ 'accept-language' ] );
+		// console.log( 'req.acceptsLanguages()', req.acceptsLanguages() );
 
 		// const ip = req.headers[ 'x-forwarded-for' ] || req.connection.remoteAddress;
-
 		const path = req.url;
 
-		if ( path === '/register' || path === '/dictionary' ) {
+		if (
+			path === '/register' ||
+			( path === '/dictionary' && req.method === 'GET' )
+		) {
 			return next();
 		}
 
@@ -588,6 +589,24 @@ db.once( 'open', function () {
 		} );
 
 		res.send( groups );
+	} );
+	app.post( '/dictionary', async ( req, res ) => {
+		console.log( '********* POST "/dictionary" *********' );
+		const { language } = req.body;
+		// const { language } = 'es';
+		const dictionaryPath =
+			path.resolve( 'api', 'dictionaries', `${ language }.json` );
+
+		fs.readFile( dictionaryPath, ( err, content)	 => {
+			if ( err ) {
+				console.log( 'err', err );
+				return responseError( res, 'Error trying to get dictionary', 400 );
+			}
+
+			const dictionary = JSON.parse( content );
+
+			res.send( dictionary );
+		} );
 	} );
 	app.get( '/user', ( req, res ) => {
 		authenticateSuccess( res, req.user );
