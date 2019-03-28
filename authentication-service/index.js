@@ -1,9 +1,12 @@
 const express = require( 'express' );
 const mongoose = require( 'mongoose' );
 const port = 3002;
+// const dbHost = '192.168.1.67';
+const dbHost = 'localhost';
 
 mongoose.connect(
-	'mongodb://hector:hector@localhost/AuthService?authSource=admin',
+	`mongodb://hector:hector@${ dbHost }/AuthService?authSource=admin`,
+	// 'mongodb://hector:hector@localhost/AuthService?authSource=admin',
 	{ useNewUrlParser: true }
 );
 

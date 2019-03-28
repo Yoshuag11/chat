@@ -75,7 +75,7 @@ const userSchema = new mongoose.Schema( {
 const conversationSchema = new mongoose.Schema( {
 	type: {
 		type: String,
-		default: 'conversations',
+		default: 'conversation',
 		enum: [ 'conversation', 'group' ]
 	},
 	messages: [ messageScheme ]

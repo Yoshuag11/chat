@@ -11,7 +11,8 @@ import {
 	// newMessageRead
 	createGroupConversation,
 	asyncRequest,
-	asyncSetDictionary
+	asyncSetDictionary,
+	asyncAcceptRequest
 } from '../../actions';
 import {
 	connect
@@ -100,6 +101,7 @@ class Sidebar extends React.Component {
 			match,
 			dictionary,
 			newRequest,
+			asyncAcceptRequest
 			// requests
 		} = this.props;
 		const {
@@ -188,13 +190,16 @@ class Sidebar extends React.Component {
 								</button>
 								<div className='dropdown-menu'>
 									{ requests.map( ( request, index ) => (
-										<a
+										<button
 											key={ index }
 											className='dropdown-item'
-											href='/'
+											// href='/'
+											onClick={ asyncAcceptRequest.bind(
+												this, request.requestId
+											) }
 										>
 											{ request.username }
-										</a>
+										</button>
 									) ) }
 								</div>
 							</li>
@@ -217,13 +222,17 @@ class Sidebar extends React.Component {
 								>
 									<button
 										className='dropdown-item'
-										onClick={ this.handleChangeLanguage.bind( this, 'en' ) }
+										onClick={ this.handleChangeLanguage.bind(
+											this, 'en'
+										) }
 									>
 										{ languageDropdown.english }
 									</button>
 									<button
 										className='dropdown-item'
-										onClick={ this.handleChangeLanguage.bind( this, 'es' ) }
+										onClick={ this.handleChangeLanguage.bind(
+											this, 'es'
+										) }
 									>
 										{ languageDropdown.spanish }
 									</button>
@@ -550,7 +559,8 @@ Sidebar.propTypes = {
 	newRequest: PropTypes.bool.isRequired,
 	// requests: PropTypes.array.isRequired,
 	user: PropTypes.object.isRequired,
-	asyncSetDictionary: PropTypes.func.isRequired
+	asyncSetDictionary: PropTypes.func.isRequired,
+	asyncAcceptRequest: PropTypes.func.isRequired
 };
 
 const mapStateToProps = state => ( {
@@ -565,7 +575,8 @@ export default connect(
 	{
 		createGroupConversation,
 		asyncRequest,
-		asyncSetDictionary
+		asyncSetDictionary,
+		asyncAcceptRequest
 		// newMessageRead
 	}
 )( Sidebar );

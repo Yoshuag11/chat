@@ -29,6 +29,7 @@ export const CLOSE_SOCKET = 'CLOSE_SOCKET';
 export const LOAD_DICTIONARY = 'LOAD_DICTIONARY';
 export const ASYNC_LOAD_DICTIONARY = 'ASYNC_LOAD_DICTIONARY';
 export const ASYNC_SET_DICTIONARY = 'ASYNC_SET_DICTIONARY';
+export const ASYNC_ACCEPT_REQUEST = 'ASYNC_ACCEPT_REQUEST';
 
 const action = (type, payload = {}) => ( { type, ...payload } );
 
@@ -71,3 +72,5 @@ export const loadDictionary =
 export const asyncLoadDictionary =  () => action( ASYNC_LOAD_DICTIONARY );
 export const asyncSetDictionary =
 	language => action( ASYNC_SET_DICTIONARY, { language } );
+export const asyncAcceptRequest =
+	requestId => action( ASYNC_ACCEPT_REQUEST, { requestId } );

@@ -20,6 +20,7 @@ const {
 	groupParticipantSchema,
 	groupSchema
 } = require( './schemas' );
+// const authenticateHost = 'http://192.168.1.67:3002';
 const authenticateHost = 'http://localhost:3002';
 const responseError = ( res, message = 'Unauthorized', code = 401 ) => {
 	res
@@ -33,6 +34,7 @@ const authenticateSuccess = ( res, user ) => {
 const dbUsername = 'hector';
 const dbPassword = 'hector';
 const dbPort = 27017;
+// const dbUrl = '192.168.1.67';
 const dbUrl = 'localhost';
 const database = 'Chat';
 // Helper to check whether the user is logged in or not
@@ -302,20 +304,22 @@ db.once( 'open', function () {
 	} );
 	app.post( '/request/accept', async ( req, res ) => {
 		const user = req.user;
-		const { id } = req.body;
+		const { requestId } = req.body;
 		// validate that the request indeed belongs to the user
 		const request =
-			user.requestsReceived.find( request => request.requestId == id );
+			user.requestsReceived.find(
+				request => request.requestId.toString() === requestId
+			);
 
 		if ( !request ) {
 			return responseError( res );
 		}
 
-		// get all request´s data
-		const wholeRequest = await RequestModel.findById( id );
+		// get the whole request
+		const wholeRequest = await RequestModel.findById( requestId );
 
 		if ( !wholeRequest ) {
-			return responseError( res );
+			return responseError( res, 'Request not found', 404 );
 		}
 
 		const conversation =
@@ -344,7 +348,7 @@ db.once( 'open', function () {
 					],
 					requestsSent:
 						contact.requestsSent.filter(
-							request => request.requestId != id
+							request => request.requestId.toString() !== requestId
 						)
 				}
 			}
@@ -360,13 +364,13 @@ db.once( 'open', function () {
 					],
 					requestsReceived:
 						user.requestsReceived.filter(
-							request => request.requestId != id
+							request => request.requestId.toString() !== requestId
 						)
 				}
 			}
 		);
 		await RequestModel.findByIdAndUpdate(
-			id,
+			requestId,
 			{
 				$set: {
 					status: 'accepted'
@@ -595,6 +599,7 @@ db.once( 'open', function () {
 		const { language } = req.body;
 		// const { language } = 'es';
 		const dictionaryPath =
+			// path.resolve( 'dictionaries', `${ language }.json` );
 			path.resolve( 'api', 'dictionaries', `${ language }.json` );
 
 		fs.readFile( dictionaryPath, ( err, content)	 => {
@@ -615,6 +620,7 @@ db.once( 'open', function () {
 		console.log( '********* GET "/dictionary" *********' );
 		const language = 'es';
 		const dictionaryPath =
+			// path.resolve( 'dictionaries', `${ language }.json` );
 			path.resolve( 'api', 'dictionaries', `${ language }.json` );
 
 		fs.readFile( dictionaryPath, ( err, content)	 => {

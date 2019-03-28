@@ -33,7 +33,8 @@ import {
 	USER_ADDED_TO_GROUP,
 	CLOSE_SOCKET,
 	ASYNC_LOAD_DICTIONARY,
-	ASYNC_SET_DICTIONARY
+	ASYNC_SET_DICTIONARY,
+	ASYNC_ACCEPT_REQUEST
 	// ASYNC_FETCH_REQUESTS
 } from './actions';
 import { createWebSocketConnection } from './socket';
@@ -320,6 +321,21 @@ function* asyncSetDictionary ( payload ) {
 		yield put( loadDictionary( dictionary ) );
 	}
 }
+function* asyncAcceptRequest ( payload ) {
+	const { requestId } = payload;
+	const response = yield sendRequest(
+		'request/accept',
+		'POST',
+		{ requestId }
+	);
+
+	if ( response.ok ) {
+		yield fetchUser();
+	} else {
+		console.log( 'error', response );
+		throw new Error( 'Error while trying to accept request' );
+	}
+}
 function* asyncRegister ( { email, username, password } ) {
 	// const options = {
 	// 	method: 'POST',
@@ -331,7 +347,7 @@ function* asyncRegister ( { email, username, password } ) {
 	// const resp = yield fetch( `${ apiHost }/register`, options );
 	const resp =
 		yield sendRequest(
-			`${ apiHost }/register`,
+			'register',
 			'POST',
 			{ email, username, password }
 		);
@@ -345,8 +361,9 @@ function* asyncRegister ( { email, username, password } ) {
 	}
 
 	// TODO: show error when user exists
-	yield put( authorize( responseOK ) );
-	yield put( setUser( user ) );
+	yield fetchUser();
+	// yield put( authorize( responseOK ) );
+	// yield put( setUser( user ) );
 }
 function* request ( { to } ) {
 	yield sendRequest( 'request', 'POST', { to } );
@@ -416,7 +433,6 @@ function* newMessageRead( payload ) {
 
 	// yield put( setUser( { ...user, contacts } ) );
 	// yield put( setUser( user ) );
-
 }
 // Watchers
 function* watchCreateGroupConversation () {
@@ -430,6 +446,9 @@ function* watchAuthorize () {
 }
 function* watchRegister () {
 	yield takeEvery( ASYNC_REGISTER, asyncRegister );
+}
+function* watchAcceptRequest () {
+	yield takeEvery( ASYNC_ACCEPT_REQUEST, asyncAcceptRequest );
 }
 function* watchSendMessage ( socket ) {
 	while ( true ) {
@@ -577,7 +596,10 @@ function* listenForMessages ( socketChannel ) {
 						...user,
 						requestsReceived: [
 							...user.requestsReceived,
-							request.from
+							{
+								...request.from,
+								requestId: request._id
+							}
 						]
 					};
 
@@ -805,6 +827,7 @@ export default function* rootSaga () {
 		watchAddParticipant(),
 		watchLoadDictionary(),
 		watchSetDictionary(),
+		watchAcceptRequest(),
 		startStopChannel()
 	] );
 }
