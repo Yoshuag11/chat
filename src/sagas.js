@@ -1,5 +1,5 @@
 import {
-	put, takeEvery, all, call, apply, take, fork, race, select
+	put, takeEvery, all, call, apply, take, fork, race, select, cancelled
 } from 'redux-saga/effects';
 import { eventChannel } from 'redux-saga';
 import {
@@ -9,16 +9,21 @@ import {
 	socketStatus,
 	newRequest,
 	sendMessage,
+	stopChannel,
+	userLogout,
 	// newMessage,
 	loadMessages,
 	loadGroups,
-	closeSocket,
+	// closeSocket,
 	joinConversation,
 	joinGroups,
 	userAddedToGroup,
 	loadDictionary,
+	initializeSagas,
+	setLanguage,
 	ASYNC_AUTHORIZE,
 	START_CHANNEL,
+	STOP_CHANNEL,
 	CREATE_MESSAGE,
 	ASYNC_REGISTER,
 	ASYNC_FETCH_USER,
@@ -31,13 +36,16 @@ import {
 	JOIN_GROUPS,
 	ADD_PARTICIPANTS,
 	USER_ADDED_TO_GROUP,
-	CLOSE_SOCKET,
+	// CLOSE_SOCKET,
+	LOG_OUT,
 	ASYNC_LOAD_DICTIONARY,
 	ASYNC_SET_DICTIONARY,
-	ASYNC_ACCEPT_REQUEST
+	ASYNC_ACCEPT_REQUEST,
+	INITIALIZE_SAGAS
 	// ASYNC_FETCH_REQUESTS
 } from './actions';
 import { createWebSocketConnection } from './socket';
+import Cookies from 'js-cookie';
 
 const apiHost = 'http://localhost:3000';
 // const apiHost = 'http://192.168.1.70:3000';
@@ -61,7 +69,7 @@ function createSocketChannel ( socket ) {
 			// emit( { type: 'request', request } );
 		};
 		const messageHandler = message => {
-			console.log( 'message received', message );
+			// console.log( 'message received', message );
 			emit( { type: 'messageReceived', message } );
 			// emit( sendMessage( message ) );
 		};
@@ -131,9 +139,11 @@ function* sendRequest ( path = '', method = 'GET', payload = {} ) {
 	const response = yield fetch( `${ apiHost }/${ path }`, options );
 
 	if ( response.status === 401 ) {
-		yield put( setUser( null ) );
-		yield put( authorize( false ) );
-		yield put( closeSocket() );
+		// yield put( setUser( null ) );
+		// yield put( authorize( false ) );
+		// yield put( closeSocket() );
+		yield put( userLogout() );
+		yield put( stopChannel() );
 		throw new Error( 'Unauthorized' );
 	}
 	return response;
@@ -303,7 +313,9 @@ function* asyncLoadDictionary () {
 	if ( response.ok ) {
 		const dictionary = yield response.json();
 
-		yield put( loadDictionary( dictionary ) );
+		// yield put( loadDictionary( dictionary ) );
+		// yield put( setLanguage() );
+		yield languageHandler( dictionary );
 	}
 }
 function* asyncSetDictionary ( payload ) {
@@ -318,8 +330,15 @@ function* asyncSetDictionary ( payload ) {
 	if ( response.ok ) {
 		const dictionary = yield response.json();
 
-		yield put( loadDictionary( dictionary ) );
+		// yield put( loadDictionary( dictionary ) );
+		// yield put( setLanguage( Cookies.get( 'language' ) ) );
+		yield languageHandler( dictionary );
 	}
+}
+function* languageHandler ( dictionary ) {
+	console.log( '********* languageHandler *********' );
+	yield put( loadDictionary( dictionary ) );
+	yield put( setLanguage( Cookies.get( 'language') ) );
 }
 function* asyncAcceptRequest ( payload ) {
 	const { requestId } = payload;
@@ -345,28 +364,39 @@ function* asyncRegister ( { email, username, password } ) {
 	// 	body: JSON.stringify( { email, username, password } )
 	// };
 	// const resp = yield fetch( `${ apiHost }/register`, options );
-	const resp =
+	const response =
 		yield sendRequest(
 			'register',
 			'POST',
 			{ email, username, password }
 		);
-	const responseOK = resp.ok;
+	const responseOK = response.ok;
 	let user;
 
 	if ( responseOK ) {
-		user = yield resp.json();
+		user = yield response.json();
 	} else {
 		user = null;
 	}
 
 	// TODO: show error when user exists
-	yield fetchUser();
-	// yield put( authorize( responseOK ) );
-	// yield put( setUser( user ) );
+	// yield fetchUser();
+	yield put( authorize( responseOK ) );
+	yield put( setUser( user ) );
 }
 function* request ( { to } ) {
 	yield sendRequest( 'request', 'POST', { to } );
+}
+function* logOut () {
+	// TODO: handle errors
+	yield sendRequest( 'logout', 'POST' );
+	// yield put( socketStatus( false ) );
+	// yield put( authorize( false ) );
+	// yield put( setUser( null ) );
+	yield put( userLogout() );
+	yield asyncLoadDictionary();
+	yield put( stopChannel() );
+	// yield put( initializeSagas() );
 }
 function* newMessageRead( payload ) {
 	console.log( 'trying to set a message as read' );
@@ -454,7 +484,7 @@ function* watchSendMessage ( socket ) {
 	while ( true ) {
 		const payload = yield take( CREATE_MESSAGE );
 		console.log( 'creating message' );
-		console.log( 'payload', payload );
+		// console.log( 'payload', payload );
 		const { conversationId, message, conversationType } = payload;
 
 		yield apply(
@@ -477,14 +507,14 @@ function* asyncJoinGroups ( socket ) {
 		]
 	);
 }
-function* watchCloseSocketConnection ( socket ) {
-	console.log( '********* watchCloseSocketConnection *********' );
-	yield take( CLOSE_SOCKET );
+// function* watchCloseSocketConnection ( socket ) {
+// 	console.log( '********* watchCloseSocketConnection *********' );
+// 	yield take( CLOSE_SOCKET );
 
-	console.log( 'about to close socket' );
+// 	console.log( 'about to close socket' );
 
-	socket.close();
-}
+// 	socket.close();
+// }
 function* watchUserAddedToGroup ( socket ) {
 	console.log( '********* watchUserAddedToGroup *********');
 
@@ -575,210 +605,214 @@ function* watchLoadGroups () {
 function* watchNewMessageRead () {
 	yield takeEvery( NEW_MESSAGE_READ, newMessageRead );
 }
+function* watchLogOut () {
+	yield takeEvery( LOG_OUT, logOut );
+}
 // function* watchFetchRequest () {
 // 	yield takeEvery( ASYNC_FETCH_REQUESTS, fetchRequests );
 // }
-function* listenForMessages ( socketChannel ) {
-	// Helper to get user data from within the state
-	// const getUser = state => state.user;
-	let contacts;
+// function* listenForMessages ( socketChannel ) {
+// 	// Helper to get user data from within the state
+// 	// const getUser = state => state.user;
+// 	let contacts;
 
-	while ( true ) {
-		const payload = yield take( socketChannel );
-		let user = yield select( getUser );
+// 	while ( true ) {
+// 		const payload = yield take( socketChannel );
+// 		let user = yield select( getUser );
 
-		switch ( payload.type ) {
-			case 'request':
-				const request = payload.request;
+// 		switch ( payload.type ) {
+// 			case 'request':
+// 				const request = payload.request;
 
-				if ( request.to.email === user.email ) {
-					user = {
-						...user,
-						requestsReceived: [
-							...user.requestsReceived,
-							{
-								...request.from,
-								requestId: request._id
-							}
-						]
-					};
+// 				if ( request.to.email === user.email ) {
+// 					user = {
+// 						...user,
+// 						requestsReceived: [
+// 							...user.requestsReceived,
+// 							{
+// 								...request.from,
+// 								requestId: request._id
+// 							}
+// 						]
+// 					};
 
-					yield put( setUser( user ) );
-					yield put( newRequest( true ) );
-				}
-				break;
-			case 'userConnected':
-				const userConnectedPayload = payload.user;
-				// check if the user connected is part of current user's contacts
-				const userConnected = user.contacts.find(
-					contact => contact.userId === userConnectedPayload._id
-				);
+// 					yield put( setUser( user ) );
+// 					yield put( newRequest( true ) );
+// 				}
+// 				break;
+// 			case 'userConnected':
+// 				const userConnectedPayload = payload.user;
+// 				// check if the user connected is part of current user's contacts
+// 				const userConnected = user.contacts.find(
+// 					contact => contact.userId === userConnectedPayload._id
+// 				);
 
-				if ( userConnected ) {
-					console.log( 'connected user is a contact!');
-					console.log( 'user connected full info', userConnected );
-					const conversationId = userConnected.conversationId;
+// 				if ( userConnected ) {
+// 					console.log( 'connected user is a contact!');
+// 					console.log( 'user connected full info', userConnected );
+// 					const conversationId = userConnected.conversationId;
 
-					// yield put( { type: JOIN_CONVERSATION, conversationId } );
-					yield put(
-						joinConversation( {
-							conversationId,
-							conversationType: 'conversation'
-						} )
-					);
+// 					// yield put( { type: JOIN_CONVERSATION, conversationId } );
+// 					yield put(
+// 						joinConversation( {
+// 							conversationId,
+// 							conversationType: 'conversation'
+// 						} )
+// 					);
 
-					// When it comes to contacts, the real user's id is withing the
-					// property "userId" rather than "_id", since "_id" is the
-					// actual id of the sub-document, which can be useful in case of,
-					// for instance, delete a contact.
-					contacts = user.contacts.map( contact => {
-						if ( contact.userId === userConnected.userId ) {
-							// Create a copy of the contact to avoid modifying
-							// any existent user
-							contact = { ...contact };
+// 					// When it comes to contacts, the real user's id is withing the
+// 					// property "userId" rather than "_id", since "_id" is the
+// 					// actual id of the sub-document, which can be useful in case of,
+// 					// for instance, delete a contact.
+// 					contacts = user.contacts.map( contact => {
+// 						if ( contact.userId === userConnected.userId ) {
+// 							// Create a copy of the contact to avoid modifying
+// 							// any existent user
+// 							contact = { ...contact };
 
-							contact.connected = true;
-						}
-						return contact;
-					} );
+// 							contact.connected = true;
+// 						}
+// 						return contact;
+// 					} );
 
-					yield put( setUser( { ...user, contacts } ) );
-				}
-				break;
-			case 'connectedUsers':
-				console.log( 'connected users' );
-				// console.log( 'payload', payload );
-				const { connectedUsers } = payload;
-				const contactsToConnectTo = [];
+// 					yield put( setUser( { ...user, contacts } ) );
+// 				}
+// 				break;
+// 			case 'connectedUsers':
+// 				console.log( 'connected users' );
+// 				// console.log( 'payload', payload );
+// 				const { connectedUsers } = payload;
+// 				const contactsToConnectTo = [];
 
-				// look up for connected contacts
-				contacts = user.contacts.map( contact => {
-					const user =
-						connectedUsers.find( user => user._id === contact.userId );
+// 				// look up for connected contacts
+// 				contacts = user.contacts.map( contact => {
+// 					const user =
+// 						connectedUsers.find( user => user._id === contact.userId );
 
-					if ( user ) {
-						// Create a copy of the contact
-						contact = { ...contact };
-						contact.connected = true;
+// 					if ( user ) {
+// 						// Create a copy of the contact
+// 						contact = { ...contact };
+// 						contact.connected = true;
 
-						contactsToConnectTo.push( contact );
-					}
-					return contact;
-				} );
+// 						contactsToConnectTo.push( contact );
+// 					}
+// 					return contact;
+// 				} );
 
-				console.log( 'available contacts to connect to:', contactsToConnectTo );
+// 				console.log( 'available contacts to connect to:', contactsToConnectTo );
 
-				// connect conversations of connected users
-				for (let contact of contactsToConnectTo ) {
-					if ( contact.connected ) {
-						const conversationId = contact.conversationId;
+// 				// connect conversations of connected users
+// 				for (let contact of contactsToConnectTo ) {
+// 					if ( contact.connected ) {
+// 						const conversationId = contact.conversationId;
 
-						// Join to the chats so the user can interact with each contact
-						// yield put( { type: JOIN_CONVERSATION, conversationId } );
-						yield put(
-							joinConversation( {
-								conversationId,
-								conversationType: 'conversation'
-							} )
-						);
-					}
-				}
-				// // connect to available groups
-				// for ( let conversationId of user.groups ) {
-				// 	yield put(
-				// 		joinConversation( {
-				// 			conversationId,
-				// 			conversationType: 'group'
-				// 		} ) 
-				// 	);
-				// }
+// 						// Join to the chats so the user can interact with each contact
+// 						// yield put( { type: JOIN_CONVERSATION, conversationId } );
+// 						yield put(
+// 							joinConversation( {
+// 								conversationId,
+// 								conversationType: 'conversation'
+// 							} )
+// 						);
+// 					}
+// 				}
+// 				// // connect to available groups
+// 				// for ( let conversationId of user.groups ) {
+// 				// 	yield put(
+// 				// 		joinConversation( {
+// 				// 			conversationId,
+// 				// 			conversationType: 'group'
+// 				// 		} ) 
+// 				// 	);
+// 				// }
 
-				yield put( setUser( { ...user, contacts } ) );
-				break;
-			case 'socketDisconnected':
-				yield put( socketStatus( false ) );
-				// yield put( authorize( false ) );
-				// yield put( setUser( null ) );
-				break;
-			case 'socketReconnect':
-				console.log( '********* socketReconnect *********' );
-				yield put( socketStatus( true ) );
-				yield fetchUser();
-				break;
-			case 'addedToNewGroup':
-				console.log( '********* addedToNewGroup *********' );
-				yield fetchGroups();
-				break;
-			case 'userDisconnected':
-				const disconnectedUser = payload.user;
+// 				yield put( setUser( { ...user, contacts } ) );
+// 				break;
+// 			case 'socketDisconnected':
+// 				yield put( socketStatus( false ) );
+// 				// yield put( authorize( false ) );
+// 				// yield put( setUser( null ) );
+// 				break;
+// 			case 'socketReconnect':
+// 				console.log( '********* socketReconnect *********' );
+// 				yield put( socketStatus( true ) );
+// 				yield fetchUser();
+// 				break;
+// 			case 'addedToNewGroup':
+// 				console.log( '********* addedToNewGroup *********' );
+// 				yield fetchGroups();
+// 				break;
+// 			case 'userDisconnected':
+// 				const disconnectedUser = payload.user;
 
-				contacts = user.contacts.map( contact => {
-					if ( contact.userId === disconnectedUser._id ) {
-						// Create a copy of the contact
-						contact = { ...contact };
+// 				contacts = user.contacts.map( contact => {
+// 					if ( contact.userId === disconnectedUser._id ) {
+// 						// Create a copy of the contact
+// 						contact = { ...contact };
 
-						delete contact.connected;
-					}
-					return contact;
-				} );
+// 						delete contact.connected;
+// 					}
+// 					return contact;
+// 				} );
 
-				yield put( setUser( { ...user, contacts } ) );
-				break;
-			case 'messageReceived':
-				const {
-					message,
-					message: {
-						conversationType,
-						conversationId
-					}
-				} = payload;
+// 				yield put( setUser( { ...user, contacts } ) );
+// 				break;
+// 			case 'messageReceived':
+// 				const {
+// 					message,
+// 					message: {
+// 						conversationType,
+// 						conversationId
+// 					}
+// 				} = payload;
 
-				if ( conversationType === 'group' ) {
-					const groups = userGroups.map( group => {
-						console.log( 'group.conversationId', group.conversationId );
-						console.log( 'typeof group.conversationId', typeof group.conversationId );
-						if ( group.conversationId.toString() === conversationId ) {
-							// Create a copy of the group
-							group = { ...group };
+// 				if ( conversationType === 'group' ) {
+// 					const groups = userGroups.map( group => {
+// 						console.log( 'group.conversationId', group.conversationId );
+// 						console.log( 'typeof group.conversationId', typeof group.conversationId );
+// 						if ( group.conversationId.toString() === conversationId ) {
+// 							// Create a copy of the group
+// 							group = { ...group };
 	
-							group.newMessage = true;
-						}
-						return group;
-					} );
+// 							group.newMessage = true;
+// 						}
+// 						return group;
+// 					} );
 
-					// user = { ...user, groups };
-					userGroups = groups;
+// 					// user = { ...user, groups };
+// 					userGroups = groups;
 
-					yield put( loadGroups( userGroups ) );
-				} else {
-					contacts = user.contacts.map( contact => {
-						if ( contact.conversationId === conversationId ) {
-							// Create a copy of the contact
-							contact = { ...contact };
+// 					yield put( loadGroups( userGroups ) );
+// 				} else {
+// 					contacts = user.contacts.map( contact => {
+// 						if ( contact.conversationId === conversationId ) {
+// 							// Create a copy of the contact
+// 							contact = { ...contact };
 	
-							contact.newMessage = true;
-						}
-						return contact;
-					} );
+// 							contact.newMessage = true;
+// 						}
+// 						return contact;
+// 					} );
 
-					// user = { ...user, contacts };
-					yield put( setUser( { ...user, contacts } ) );
-				}
-				// console.log(
-				// 	'newMessage( payload.message )',
-				// 	newMessage( payload.message )
-				// );
-				yield put( sendMessage( message ) );
-				// yield put( newMessage( payload.message ) );
-				// yield put( setUser( user ) );
-				break;
-			default:
-				console.log( 'payload', payload );
-				yield put( payload );
-		}
-	}
-}
+// 					// user = { ...user, contacts };
+// 					yield put( setUser( { ...user, contacts } ) );
+// 				}
+// 				// console.log(
+// 				// 	'newMessage( payload.message )',
+// 				// 	newMessage( payload.message )
+// 				// );
+// 				yield put( sendMessage( message ) );
+// 				// yield put( newMessage( payload.message ) );
+// 				// yield put( setUser( user ) );
+// 				break;
+// 			default:
+// 				console.log( 'payload', payload );
+// 				yield put( payload );
+// 		}
+// 	}
+// }
 function* initializeSocketIO () {
+	console.log( '********* initializeSocketIO *********' );
 	const socket = yield call( createWebSocketConnection );
 	const socketChannel = yield call( createSocketChannel, socket );
 	const { __v, contacts, requestsSent, requestsReceived, ...user } = yield select( getUser );
@@ -790,30 +824,235 @@ function* initializeSocketIO () {
 
 	try {
 		// An error will cause the saga to jump to the catch block
-		yield fork( listenForMessages, socketChannel );
+		// yield fork( listenForMessages, socketChannel );
 		yield fork( watchSendMessage, socket );
 		yield fork( watchJoinConversation, socket );
 		yield fork( watchJoinGroups, socket );
 		yield fork( watchUserAddedToGroup, socket );
-		yield fork( watchCloseSocketConnection, socket );
+		// yield fork( watchCloseSocketConnection, socket );
 
 		console.log( 'socket initialized' );
 		yield put( socketStatus( true ) );
+
+		let contacts;
+
+		while ( true ) {
+			const payload = yield take( socketChannel );
+			let user = yield select( getUser );
+
+			switch ( payload.type ) {
+				case 'request':
+					const request = payload.request;
+
+					if ( request.to.email === user.email ) {
+						user = {
+							...user,
+							requestsReceived: [
+								...user.requestsReceived,
+								{
+									...request.from,
+									requestId: request._id
+								}
+							]
+						};
+
+						yield put( setUser( user ) );
+						yield put( newRequest( true ) );
+					}
+					break;
+				case 'userConnected':
+					const userConnectedPayload = payload.user;
+					// check if the user connected is part of current user's contacts
+					const userConnected = user.contacts.find(
+						contact => contact.userId === userConnectedPayload._id
+					);
+
+					if ( userConnected ) {
+						console.log( 'connected user is a contact!');
+						console.log( 'user connected full info', userConnected );
+						const conversationId = userConnected.conversationId;
+
+						// yield put( { type: JOIN_CONVERSATION, conversationId } );
+						yield put(
+							joinConversation( {
+								conversationId,
+								conversationType: 'conversation'
+							} )
+						);
+
+						// When it comes to contacts, the real user's id is withing the
+						// property "userId" rather than "_id", since "_id" is the
+						// actual id of the sub-document, which can be useful in case of,
+						// for instance, delete a contact.
+						contacts = user.contacts.map( contact => {
+							if ( contact.userId === userConnected.userId ) {
+								// Create a copy of the contact to avoid modifying
+								// any existent user
+								contact = { ...contact };
+
+								contact.connected = true;
+							}
+							return contact;
+						} );
+
+						yield put( setUser( { ...user, contacts } ) );
+					}
+					break;
+				case 'connectedUsers':
+					console.log( 'connected users' );
+					// console.log( 'payload', payload );
+					const { connectedUsers } = payload;
+					const contactsToConnectTo = [];
+
+					// look up for connected contacts
+					contacts = user.contacts.map( contact => {
+						const user =
+							connectedUsers.find( user => user._id === contact.userId );
+
+						if ( user ) {
+							// Create a copy of the contact
+							contact = { ...contact };
+							contact.connected = true;
+
+							contactsToConnectTo.push( contact );
+						}
+						return contact;
+					} );
+
+					console.log( 'available contacts to connect to:', contactsToConnectTo );
+
+					// connect conversations of connected users
+					for (let contact of contactsToConnectTo ) {
+						if ( contact.connected ) {
+							const conversationId = contact.conversationId;
+
+							// Join to the chats so the user can interact with each contact
+							// yield put( { type: JOIN_CONVERSATION, conversationId } );
+							yield put(
+								joinConversation( {
+									conversationId,
+									conversationType: 'conversation'
+								} )
+							);
+						}
+					}
+					// // connect to available groups
+					// for ( let conversationId of user.groups ) {
+					// 	yield put(
+					// 		joinConversation( {
+					// 			conversationId,
+					// 			conversationType: 'group'
+					// 		} ) 
+					// 	);
+					// }
+
+					yield put( setUser( { ...user, contacts } ) );
+					break;
+				case 'socketDisconnected':
+					yield put( socketStatus( false ) );
+					// yield put( authorize( false ) );
+					// yield put( setUser( null ) );
+					break;
+				case 'socketReconnect':
+					console.log( '********* socketReconnect *********' );
+					yield put( socketStatus( true ) );
+					yield fetchUser();
+					break;
+				case 'addedToNewGroup':
+					console.log( '********* addedToNewGroup *********' );
+					yield fetchGroups();
+					break;
+				case 'userDisconnected':
+					const disconnectedUser = payload.user;
+
+					contacts = user.contacts.map( contact => {
+						if ( contact.userId === disconnectedUser._id ) {
+							// Create a copy of the contact
+							contact = { ...contact };
+
+							delete contact.connected;
+						}
+						return contact;
+					} );
+
+					yield put( setUser( { ...user, contacts } ) );
+					break;
+				case 'messageReceived':
+					const {
+						message,
+						message: {
+							conversationType,
+							conversationId
+						}
+					} = payload;
+
+					if ( conversationType === 'group' ) {
+						const groups = userGroups.map( group => {
+							console.log( 'group.conversationId', group.conversationId );
+							console.log( 'typeof group.conversationId', typeof group.conversationId );
+							if ( group.conversationId.toString() === conversationId ) {
+								// Create a copy of the group
+								group = { ...group };
+		
+								group.newMessage = true;
+							}
+							return group;
+						} );
+
+						// user = { ...user, groups };
+						userGroups = groups;
+
+						yield put( loadGroups( userGroups ) );
+					} else {
+						contacts = user.contacts.map( contact => {
+							if ( contact.conversationId === conversationId ) {
+								// Create a copy of the contact
+								contact = { ...contact };
+		
+								contact.newMessage = true;
+							}
+							return contact;
+						} );
+
+						// user = { ...user, contacts };
+						yield put( setUser( { ...user, contacts } ) );
+					}
+					// console.log(
+					// 	'newMessage( payload.message )',
+					// 	newMessage( payload.message )
+					// );
+					yield put( sendMessage( message ) );
+					// yield put( newMessage( payload.message ) );
+					// yield put( setUser( user ) );
+					break;
+				default:
+					console.log( 'payload', payload );
+					yield put( payload );
+			}
+		}
 	} catch ( error ) {
 		console.log( 'socket error:', error );
 		socketChannel.close();
+	} finally {
+		console.log( 'initializeSocketIO cancelled' );
+		if ( yield cancelled() ) {
+			console.log( 'initializeSocketIO cancelled' );
+			// socketChannel.close();
+			socket.close();
+			console.log( 'trying to restart sagas' );
+			yield put( initializeSagas() );
+		}
 	}
 }
 function* startStopChannel () {
 	yield take( START_CHANNEL );
 	console.log( 'about to initialize socket' );
 	yield race( {
-		task: call( initializeSocketIO )
-		// cancel: call( closeSocketIO )
-		// TODO cancel action
+		task: call( initializeSocketIO ),
+		cancel: take( STOP_CHANNEL )
 	} );
 }
-export default function* rootSaga () {
+function* rootSaga() {
 	yield all( [
 		watchAuthorize(),
 		watchRegister(),
@@ -823,6 +1062,7 @@ export default function* rootSaga () {
 		watchLoadMessages(),
 		watchCreateGroupConversation(),
 		watchNewMessageRead(),
+		watchLogOut(),
 		watchLoadGroups(),
 		watchAddParticipant(),
 		watchLoadDictionary(),
@@ -830,4 +1070,31 @@ export default function* rootSaga () {
 		watchAcceptRequest(),
 		startStopChannel()
 	] );
+};
+export default function* () {
+	while ( true ) {
+		console.log( 'looping sagas initialization' );
+		yield take( INITIALIZE_SAGAS );
+		console.log( 'about to initialize sagas' );
+		yield fork( rootSaga );
+	}
 }
+// export default function* rootSaga () {
+// 	yield all( [
+// 		watchAuthorize(),
+// 		watchRegister(),
+// 		watchFetchUser(),
+// 		watchRequest(),
+// 		// watchFetchRequest(),
+// 		watchLoadMessages(),
+// 		watchCreateGroupConversation(),
+// 		watchNewMessageRead(),
+// 		watchLogOut(),
+// 		watchLoadGroups(),
+// 		watchAddParticipant(),
+// 		watchLoadDictionary(),
+// 		watchSetDictionary(),
+// 		watchAcceptRequest(),
+// 		startStopChannel()
+// 	] );
+// };

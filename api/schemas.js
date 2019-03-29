@@ -67,6 +67,7 @@ const userSchema = new mongoose.Schema( {
 	email: String,
 	username: String,
 	// status: String,
+	language: String,
 	requestsSent: [ userRequestSchema ],
 	requestsReceived: [ userRequestSchema ],
 	contacts: [ contactSchema ],

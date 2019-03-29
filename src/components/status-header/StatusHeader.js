@@ -1,18 +1,51 @@
 import React from 'react';
-// import PropTypes from 'prop-types';
-// import { Link } from 'react-router-dom';
-// import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import PropTypes from 'prop-types';
+import {
+	Link
+	// Redirect
+} from 'react-router-dom';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { connect } from 'react-redux';
+import { OverlayTrigger, Tooltip } from 'react-bootstrap';
+import {
+	logOut
+	// stopChannel
+} from '../../actions';
 // import { Badge } from 'react-bootstrap';
 import './StatusHeader.css';
 
 const StatusHeader = ( {
 		children,
+		logOut,
+		tooltipText
+		// stopChannel
 		// handleModal,
 		// newRequest,
 		// requests
 		// conversationType
 	} ) => (
 		<header className='status-header' id='status-header'>
+			<br />
+				<Link
+					to='/authenticate'
+					onClick={ logOut }
+					// onClick={ stopChannel }
+				>
+				<OverlayTrigger
+					placement='left'
+					overlay={
+						<Tooltip id='statusHeaderToolTip'>{ tooltipText }</Tooltip>
+					}
+					container={ this }
+				>
+					<FontAwesomeIcon
+						className='fa-pull-right'
+						size='lg'
+						// icon={ [ 'fab', 'react' ] }
+						icon='sign-out-alt'
+					/>
+					</OverlayTrigger>
+				</Link>
 			{/* <h3>{ username }</h3> */}
 			{ children }
 			<hr />
@@ -66,11 +99,19 @@ const StatusHeader = ( {
 		</header>
 	);
 
-// StatusHeader.propTypes = {
+StatusHeader.propTypes = {
+	logOut: PropTypes.func.isRequired
+	// stopChannel: PropTypes.func.isRequired
 // 	// conversationType: PropTypes.string.isRequired,
 // 	// requests: PropTypes.array.isRequired,
 // 	// newRequest: PropTypes.bool.isRequired
 // 	// handleModal: PropTypes.func.isRequired
-// };
+};
 
-export default StatusHeader;
+export default connect(
+	null,
+	{
+		logOut
+		// stopChannel
+	}
+)( StatusHeader );

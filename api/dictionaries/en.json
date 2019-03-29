@@ -49,7 +49,8 @@
 		},
 		"statusHeader": {
 			"addParticipantsButton": "Add participants",
-			"participantsTag": "Participants"
+			"participantsTag": "Participants",
+			"tooltipLogoutButton": "Log out"
 		}
 	}
 }

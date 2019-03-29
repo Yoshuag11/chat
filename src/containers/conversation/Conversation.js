@@ -1,6 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import moment from 'moment';
+// import * as moment from 'moment';
 import 'moment/locale/es';
 import {
 	createMessage
@@ -9,11 +10,18 @@ import {
 import { connect } from 'react-redux';
 import MessageComposer from '../../components/message-composer/MessageComposer';
 
+// console.log(moment.locale ); // en
+// moment.locale( 'en' ); // en
+// console.log( moment.locale() ); // en
+// // moment.locale('fr');
+// console.log( moment.locale( 'es' ) ); // en
+// // moment.locale('pt-BR');
+// console.log(moment.locale()); // pt-BR
 
-console.log( 'moment.locale()', moment.locale() );
-
-moment.locale( 'es' );
-console.log( 'moment.locale()', moment.locale() );
+// moment.locale( 'es' );
+// console.log( 'moment.locale()', moment.locale() );
+// moment.locale();
+// console.log( 'moment.locale()', moment.locale() );
 
 class Conversation extends React.Component {
 	// componentDidMount () {
@@ -31,8 +39,11 @@ class Conversation extends React.Component {
 			conversationId,
 			conversationType,
 			messages,
-			dictionary
+			dictionary,
+			language
 		} = this.props;
+
+		moment.locale( language );
 		// console.log( 'this.props', this.props );
 		return (
 			<>
@@ -87,7 +98,8 @@ class Conversation extends React.Component {
 
 const mapStateToProps = state => ( {
 	messages: state.messages,
-	dictionary: state.dictionary.messageComposer
+	dictionary: state.dictionary.messageComposer,
+	language: state.language
 } );
 
 Conversation.propTypes = {

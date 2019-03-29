@@ -238,6 +238,7 @@ class ChatContent extends React.Component {
 					// username={ username }
 					// requests={ requests }
 					// conversationType={ conversationType }
+					tooltipText={ statusHeader.tooltipLogoutButton }
 				>
 					<h1>
 						{ title }

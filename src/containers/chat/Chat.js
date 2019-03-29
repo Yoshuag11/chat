@@ -23,6 +23,7 @@ class Chat extends React.Component {
 		// Initialize the socket channel
 		console.log( 'about to initialize channel' );
 		this.props.startChannel();
+		this.props.asyncLoadDictionary();
 
 		// this.state = {
 		// 	showModal: false,
@@ -137,7 +138,8 @@ Chat.propTypes = {
 	// newRequest: PropTypes.bool.isRequired,
 	// joinConversation: PropTypes.func.isRequired,
 	// asyncLoadMessages: PropTypes.func.isRequired,
-	socket: PropTypes.bool.isRequired
+	socket: PropTypes.bool.isRequired,
+	asyncLoadDictionary: PropTypes.func.isRequired
 };
 
 const mapStateToProps = state => ( {

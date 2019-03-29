@@ -6,6 +6,7 @@ import Sidebar from '../sidebar/Sidebar';
 import Chat from '../../containers/chat/Chat';
 import Loading from '../loading/Loading';
 import ChatContent from '../../containers/chatcontent/ChatContent';
+import StatusHeader from '../status-header/StatusHeader';
 import {
 	BrowserRouter as Router,
 	Route,
@@ -18,13 +19,16 @@ import {
 	asyncAuthorize,
 	asyncRegister,
 	asyncFetchUser,
-	startChannel
+	startChannel,
+	asyncLoadDictionary,
+	initializeSagas
 } from '../../actions';
 import { library } from '@fortawesome/fontawesome-svg-core';
 import {
 	faUserPlus,
 	faCircle,
-	faPlus
+	faPlus,
+	faSignOutAlt
 } from '@fortawesome/free-solid-svg-icons';
 import { fab } from '@fortawesome/free-brands-svg-icons';
 import { nullOrObject } from '../../utils';
@@ -32,9 +36,31 @@ import { nullOrObject } from '../../utils';
 // import Modal from '../../components/modal/Modal';
 // import Conversation from '../../containers/conversation/Conversation';
 
-library.add( faUserPlus, fab, faCircle, faPlus );
+library.add( faUserPlus, fab, faCircle, faPlus, faSignOutAlt );
 
 class App extends Component {
+	constructor ( props ) {
+		super( props );
+
+		const {
+			asyncLoadDictionary,
+			isAuthorized,
+			asyncFetchUser,
+			initializeSagas
+		} = this.props;
+
+		initializeSagas();
+		asyncLoadDictionary();
+
+		if ( isAuthorized ) {
+			asyncFetchUser();
+		}
+	}
+	componentDidMount() {
+	}
+	componentDidUpdate() {
+		// this.props.asyncLoadDictionary();
+	}
 	// constructor ( props ) {
 	// 	super( props );
 
@@ -56,13 +82,23 @@ class App extends Component {
 			asyncRegister,
 			isAuthorized,
 			dictionary,
+			asyncLoadDictionary
 			// newRequest,
 			// requests
 			// newMessage
 			// startChannel,
 			// socket
 		} = this.props;
+		const {
+			chatContent: {
+				statusHeader: {
+					tooltipLogoutButton
+				}
+			} = { statusHeader: { tooltipLogoutButton: '' } }
+		} = dictionary;
 		// console.log('********* App -> render *********');
+		// console.log( 'user is null', user === null );
+		// console.log( 'is authorized', isAuthorized );
 		return (
 			<Router>
 				<Switch>
@@ -89,7 +125,8 @@ class App extends Component {
 								return (
 									<div className='container-fluid'>
 										<div className='row'>
-											<Chat>
+											<Chat
+												asyncLoadDictionary={ asyncLoadDictionary }>
 												<Route
 													path='/:conversationType/:conversationId'
 													component={ ChatContent }
@@ -107,7 +144,14 @@ class App extends Component {
 													exact
 													path='/'
 													render={ () => (
-														<h1>{ dictionary.landingMessage }</h1>
+														<StatusHeader
+															tooltipText={ tooltipLogoutButton }
+														>
+															<h1>
+																{ dictionary.landingMessage }
+															</h1>
+														</StatusHeader>
+														// <h1>{ dictionary.landingMessage }</h1>
 														// <section
 														// 	// className='col-sm-9 ml-sm-auto px-4'
 														// 	// className='col-sm-9 px-4'
@@ -191,6 +235,7 @@ App.propTypes = {
 	// socket: PropTypes.bool.isRequired,
 	startChannel: PropTypes.func.isRequired,
 	user: nullOrObject,
+	asyncLoadDictionary: PropTypes.func.isRequired
 	// groups: PropTypes.array.isRequired,
 	// requests: PropTypes.array.isRequired
 	// newMessage: nullOrObject
@@ -212,6 +257,8 @@ export default connect(
 		asyncAuthorize,
 		asyncRegister,
 		asyncFetchUser,
-		startChannel
+		startChannel,
+		asyncLoadDictionary,
+		initializeSagas
 	}
 )( App );

@@ -20,7 +20,7 @@ const {
 	groupParticipantSchema,
 	groupSchema
 } = require( './schemas' );
-// const authenticateHost = 'http://192.168.1.67:3002';
+// const authenticateHost = 'http://192.168.1.70:3002';
 const authenticateHost = 'http://localhost:3002';
 const responseError = ( res, message = 'Unauthorized', code = 401 ) => {
 	res
@@ -34,7 +34,7 @@ const authenticateSuccess = ( res, user ) => {
 const dbUsername = 'hector';
 const dbPassword = 'hector';
 const dbPort = 27017;
-// const dbUrl = '192.168.1.67';
+// const dbUrl = '192.168.1.70';
 const dbUrl = 'localhost';
 const database = 'Chat';
 // Helper to check whether the user is logged in or not
@@ -108,8 +108,9 @@ db.once( 'open', function () {
 		const path = req.url;
 
 		if (
-			path === '/register' ||
-			( path === '/dictionary' && req.method === 'GET' )
+			path === '/register'
+			// path === '/register' ||
+			// ( path === '/dictionary' && req.method === 'GET' )
 		) {
 			return next();
 		}
@@ -119,7 +120,10 @@ db.once( 'open', function () {
 			const user = await userLoggedIn( currentSession );
 
 			if ( !user ) {
-				if ( path === '/authorize' ) {
+				if (
+					path === '/authorize' ||
+					( path === '/dictionary' && req.method === 'GET' )
+				) {
 					return next();
 				} else {
 					// remove cookie if user is not authorized (in case it was set though )
@@ -149,7 +153,13 @@ db.once( 'open', function () {
 			}
 			return responseError( res, message, code );
 		}
-	})
+	} );
+	app.post( '/logout', ( req, res ) => {
+		res.clearCookie( 'isAuthorized' );
+		res.clearCookie( 'io' );
+		res.clearCookie( COOKIE_NAME );
+		res.send();
+	} );
 	app.post( '/register', async ( req, res ) => {
 		const { email, password, username } = req.body;
 
@@ -594,15 +604,16 @@ db.once( 'open', function () {
 
 		res.send( groups );
 	} );
-	app.post( '/dictionary', async ( req, res ) => {
+	app.post( '/dictionary', ( req, res ) => {
 		console.log( '********* POST "/dictionary" *********' );
 		const { language } = req.body;
+		const { user } = req;
 		// const { language } = 'es';
 		const dictionaryPath =
 			// path.resolve( 'dictionaries', `${ language }.json` );
 			path.resolve( 'api', 'dictionaries', `${ language }.json` );
 
-		fs.readFile( dictionaryPath, ( err, content)	 => {
+		fs.readFile( dictionaryPath, async ( err, content) => {
 			if ( err ) {
 				console.log( 'err', err );
 				return responseError( res, 'Error trying to get dictionary', 400 );
@@ -610,6 +621,17 @@ db.once( 'open', function () {
 
 			const dictionary = JSON.parse( content );
 
+			// update user's language
+			await UserModel.findByIdAndUpdate(
+				user._id,
+				{
+					$set: {
+						language
+					}
+				}
+			);
+
+			res.cookie( 'language', language );
 			res.send( dictionary );
 		} );
 	} );
@@ -618,12 +640,34 @@ db.once( 'open', function () {
 	} );
 	app.get( '/dictionary', async ( req, res ) => {
 		console.log( '********* GET "/dictionary" *********' );
-		const language = 'es';
+		const clientLanguage = req.acceptsLanguages()[ 0 ].split( '-' )[ 0 ];
+		console.log( 'clientLanguage', clientLanguage );
+		const { user } = req;
+		const language = (user && user.language) ||
+			req.cookies.language ||
+			( [ 'es', 'en' ].indexOf( clientLanguage ) >= 0 && clientLanguage ) ||
+			'en';
+		
+		// Initialize language cookie if not yet
+		if ( !req.cookies.language ) {
+			res.cookie( 'language', language );
+		}
+
+		// // update user's language
+		// await UserModel.findByIdAndUpdate(
+		// 	user._id,
+		// 	{
+		// 		$set: {
+		// 			language
+		// 		}
+		// 	}
+		// );
+		// const language = 'es';
 		const dictionaryPath =
 			// path.resolve( 'dictionaries', `${ language }.json` );
 			path.resolve( 'api', 'dictionaries', `${ language }.json` );
 
-		fs.readFile( dictionaryPath, ( err, content)	 => {
+		fs.readFile( dictionaryPath, ( err, content) => {
 			if ( err ) {
 				console.log( 'err', err );
 				return responseError( res, 'Error trying to get dictionary', 400 );

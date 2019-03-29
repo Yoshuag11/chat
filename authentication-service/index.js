@@ -1,7 +1,7 @@
 const express = require( 'express' );
 const mongoose = require( 'mongoose' );
 const port = 3002;
-// const dbHost = '192.168.1.67';
+// const dbHost = '192.168.1.70';
 const dbHost = 'localhost';
 
 mongoose.connect(

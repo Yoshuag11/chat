@@ -10,7 +10,9 @@ import {
 	SOCKET_STATUS,
 	LOAD_MESSAGES,
 	LOAD_GROUPS,
-	LOAD_DICTIONARY
+	LOAD_DICTIONARY,
+	USER_LOGOUT,
+	SET_LANGUAGE
 } from '../actions'
 import Cookies from 'js-cookie';
 
@@ -119,6 +121,14 @@ const dictionary = ( state = initDictionary, action ) => {
 			return state;
 	}
 };
+const language = ( state = '', action ) => {
+	switch ( action.type ) {
+		case SET_LANGUAGE:
+			return action.language;
+		default:
+			return state;
+	}
+};
 // const newMessage = ( state = null, action ) => {
 // 	switch ( action.type ) {
 // 		case NEW_MESSAGE:
@@ -128,8 +138,10 @@ const dictionary = ( state = initDictionary, action ) => {
 // 	}
 // }
 
-export default combineReducers( {
+const appReducer = combineReducers( {
+// export default combineReducers( {
 	isAuthorized,
+	language,
 	messages,
 	contacts,
 	user,
@@ -140,3 +152,10 @@ export default combineReducers( {
 	dictionary
 	// requests
 } );
+
+export default ( state, action ) => {
+	if ( action.type === USER_LOGOUT ) {
+		state = undefined;
+	}
+	return appReducer( state, action );
+}

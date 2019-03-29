@@ -25,11 +25,16 @@ export const LOAD_GROUPS = 'LOAD_GROUPS';
 export const JOIN_GROUPS = 'JOIN_GROUPS';
 export const ADD_PARTICIPANTS = 'ADD_PARTICIPANTS';
 export const USER_ADDED_TO_GROUP = 'USER_ADDED_TO_GROUP';
-export const CLOSE_SOCKET = 'CLOSE_SOCKET';
+// export const CLOSE_SOCKET = 'CLOSE_SOCKET';
 export const LOAD_DICTIONARY = 'LOAD_DICTIONARY';
 export const ASYNC_LOAD_DICTIONARY = 'ASYNC_LOAD_DICTIONARY';
 export const ASYNC_SET_DICTIONARY = 'ASYNC_SET_DICTIONARY';
 export const ASYNC_ACCEPT_REQUEST = 'ASYNC_ACCEPT_REQUEST';
+export const LOG_OUT = 'LOG_OUT';
+export const STOP_CHANNEL = 'STOP_CHANNEL';
+export const USER_LOGOUT = 'USER_LOGOUT';
+export const INITIALIZE_SAGAS = 'INITIALIZE_SAGAS';
+export const SET_LANGUAGE = 'SET_LANGUAGE';
 
 const action = (type, payload = {}) => ( { type, ...payload } );
 
@@ -48,6 +53,7 @@ export const asyncRegister =
 	( { username, password, email } = {} ) =>
 		action( ASYNC_REGISTER, { username, password, email } );
 export const setUser = user => action( SET_USER, { user } );
+export const userLogout = () => action( USER_LOGOUT );
 export const asyncFetchUser = () => action( ASYNC_FETCH_USER );
 export const asyncRequest = to => action( ASYNC_REQUEST, { to } );
 // export const asyncFetchRequests = () => action( ASYNC_FETCH_REQUESTS );
@@ -66,7 +72,7 @@ export const joinGroups = () => action( JOIN_GROUPS );
 export const addParticipants = payload => action( ADD_PARTICIPANTS, payload );
 export const userAddedToGroup =
 	participantId => action( USER_ADDED_TO_GROUP, { participantId } );
-export const closeSocket = () => action( CLOSE_SOCKET );
+// export const closeSocket = () => action( CLOSE_SOCKET );
 export const loadDictionary =
 	dictionary => action( LOAD_DICTIONARY, { dictionary } );
 export const asyncLoadDictionary =  () => action( ASYNC_LOAD_DICTIONARY );
@@ -74,3 +80,7 @@ export const asyncSetDictionary =
 	language => action( ASYNC_SET_DICTIONARY, { language } );
 export const asyncAcceptRequest =
 	requestId => action( ASYNC_ACCEPT_REQUEST, { requestId } );
+export const logOut = () => action( LOG_OUT );
+export const stopChannel = () => action( STOP_CHANNEL );
+export const initializeSagas = () => action( INITIALIZE_SAGAS );
+export const setLanguage = language => action( SET_LANGUAGE, { language } );
