@@ -1,5 +1,7 @@
 const express = require( 'express' );
 const mongoose = require( 'mongoose' );
+const bcrypt = require( 'bcrypt' );
+const saltRounds = 10;
 const port = 3002;
 // const dbHost = '192.168.1.70';
 const dbHost = 'localhost';
@@ -35,36 +37,51 @@ db.once( 'open', function () {
 	app.use( express.json() );
 	app.use( express.urlencoded( { extended: true } ) );
 	// routes
-	app.post( '/authenticate', ( req, res ) => {
+	app.post( '/authenticate', async ( req, res ) => {
 		res.setHeader( 'Content-type', 'application/json' );
 
-		const { email, password: pwd } = req.body;
+		const { email, password } = req.body;
 
-		if ( email === undefined || pwd === undefined ) {
+		if ( email === undefined || password === undefined ) {
 			return errorResponse( res );
 		}
 
-		UserModel.findOne(
-			{
-				email,
-				pwd
-			},
-			( err, usr ) => {
-				if ( err || usr === null ) {
-					errorResponse( res );
-				} else {
-					successResponse( usr, res ); // TODO return user ID
-				}
-			}
-		);
+		const user = await UserModel.findOne( { email } );
+
+		if ( !user ) {
+			return errorResponse( res );
+		}
+
+		const match = await bcrypt.compare( password, user.pwd );
+
+		if ( !match ) {
+			return errorResponse( res );
+		}
+
+		successResponse( user, res ); // TODO return user ID
+
+		// UserModel.findOne(
+		// 	{
+		// 		email,
+		// 		pwd
+		// 	},
+		// 	( err, usr ) => {
+		// 		if ( err || usr === null ) {
+		// 			errorResponse( res );
+		// 		} else {
+		// 			successResponse( usr, res ); // TODO return user ID
+		// 		}
+		// 	}
+		// );
 	} );
-	app.post( '/register', ( req, res ) => {
-		const { email, password: pwd } = req.body;
+	app.post( '/register', async ( req, res ) => {
+		const { email, password } = req.body;
 
-		if ( email === undefined || pwd === undefined ) {
+		if ( email === undefined || password === undefined ) {
 			return errorResponse( res );
 		}
 
+		const pwd = await bcrypt.hash( password, saltRounds );
 		const user = new UserModel( { email, pwd } );
 
 		user.save( ( err, usr ) => {
