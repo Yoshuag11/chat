@@ -6,12 +6,14 @@ WORKDIR /home/node/app
 
 COPY package*.json ./
 
+COPY yarn.lock ./
+
 USER node
 
-RUN npm install
+RUN yarn install
 
 COPY --chown=node:node . .
 
-EXPOSE 8080
+EXPOSE 3001
 
 CMD [ "node", "index.js" ]

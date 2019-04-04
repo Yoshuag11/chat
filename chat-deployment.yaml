@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chatappv2
+spec:
+  selector:
+    matchLabels:
+      run: my-chat
+  template:
+    metadata:
+      labels:
+        run: my-chat
+    spec:
+      containers:
+      - name: mongo
+        image: mongo
+        env:
+        - name: MONGO_INITDB_ROOT_USERNAME
+          value: admin
+        - name: MONGO_INITDB_ROOT_PASSWORD
+          value: admin
+      - name: authenticate
+        image: yoshuag11/k-authenticate:1.0
+      - name: api
+        image: yoshuag11/k-api:1.1
+      - name: chat
+        image: yoshuag11/k-chat:1.1
+        ports:
+        - containerPort: 3000

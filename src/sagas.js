@@ -47,9 +47,8 @@ import {
 import { createWebSocketConnection } from './socket';
 import Cookies from 'js-cookie';
 
-const apiHost = 'http://localhost:3000';
-// const apiHost = 'http://192.168.1.70:3000';
-// const apiHost = '192.168.1.70:3000';
+// const apiHost = '';
+const apiHost = '/api';
 const getUser = state => state.user;
 let conversationsJoined = [];
 let userGroups = [];
@@ -147,7 +146,6 @@ function* sendRequest ( path = '', method = 'GET', payload = {} ) {
 		throw new Error( 'Unauthorized' );
 	}
 	return response;
-	// return yield fetch( `${ apiHost }/${ path }`, options );
 }
 function* asyncAddParticipant ( payload ) {
 	console.log( '********* asyncAddParticipant *********' );
@@ -498,6 +496,7 @@ function* watchSendMessage ( socket ) {
 	}
 }
 function* asyncJoinGroups ( socket ) {
+	console.log( '********* asyncJoinGroups *********' );
 	yield apply(
 		socket,
 		socket.emit,
