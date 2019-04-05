@@ -273,7 +273,7 @@ class Sidebar extends React.Component {
 					cancelButton={ groupModal.cancelButton }
 					// submitButton='Create'
 					disableSubmitButton={ this.state.participants.length === 0 ||
-						this.state.name.length < 0 }
+						this.state.name.length === 0 }
 					submitHandler={ this.handleSubmitGroupRequest }
 				>
 					<Form>

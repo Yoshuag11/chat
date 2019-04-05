@@ -20,10 +20,10 @@ spec:
         - name: MONGO_INITDB_ROOT_PASSWORD
           value: admin
       - name: authenticate
-        image: yoshuag11/k-authenticate:1.0
+        image: yoshuag11/k-authenticate:1.1
       - name: api
-        image: yoshuag11/k-api:1.1
+        image: yoshuag11/k-api:1.2
       - name: chat
-        image: yoshuag11/k-chat:1.1
+        image: yoshuag11/k-chat:1.3
         ports:
         - containerPort: 3000
