@@ -253,18 +253,17 @@ dbConnect()
 			} );
 			app.post( '/authorize', async ( req, res ) => {
 				let user = req.user;
-		
+
 				if ( user ) {
 					return authenticateSuccess( res, user );
 				}
-		
+
 				const { email, password } = req.body;
-		
+
 				if ( email === undefined || password === undefined ) {
 					return responseError( res );
 				}
 
-				console.log( 'dan 1' );
 				try {
 					user =  await UserModel.findOne( { email } );
 
@@ -436,7 +435,7 @@ dbConnect()
 						}
 					}
 				)
-		
+
 				res.send( { message: 'Contact added correctly' } );
 			} );
 			app.post( '/conversation/group', async ( req, res ) => {
@@ -445,30 +444,26 @@ dbConnect()
 					await ( new ConversationModel( { type: 'group' } ) ).save();
 				// const { user, body: { name, participants } } = req;
 				const { name, participants: reqParticipants } = req.body;
-				console.log( 'req.body', req.body );
-				console.log( 'reqParticipants', reqParticipants );
 				// Check whether I need to to the "toObject" operation right from the 
 				// middleware that sets user value.
 				let user = req.user.toObject();
 				const participants = [];
 				const currentTime = moment().seconds(0).milliseconds(0).toISOString();
-		
+
 				for ( let participantId of reqParticipants ) {
-					console.log( 'participantId', participantId );
 					const contact = user.contacts.find(
 						// contact.userId is an ObjectId object
 						contact => contact.userId.toString() === participantId
 					);
-		
+
 					if ( !contact ) {
-						console.log( 'contact', contact );
 						return responseError(
 							res,
 							`Contact not found, id: ${ participantId}`,
 							404
 						);
 					}
-		
+
 					const { username, userId } = contact;
 					const groupParticipant =
 						new GroupParticipantModel( {
@@ -479,7 +474,7 @@ dbConnect()
 		
 					participants.push( groupParticipant );
 				}
-		
+
 				// create current user as part of the participants so that other can
 				// see they(?) as well
 				const { username, _id: userId } = user
@@ -562,7 +557,6 @@ dbConnect()
 				}
 		
 				let { groupId: reqGroupId } = req.params;
-				console.log( 'reqGroupId', reqGroupId );
 				// Check whether I need to to the "toObject" operation right from the 
 				// middleware that sets user value.
 				const user = req.user.toObject();
@@ -728,17 +722,52 @@ dbConnect()
 				} );
 			} );
 			app.get( '/conversation/:id', async ( req, res ) => {
-				const contact = req.user.contacts.find(
-						contact => contact.conversationId = req.params.id
-					);
-		
-				if ( !contact ) {
-					return responseError( res );
-				}
-		
+				const conversationId = req.params.id;
 				const conversation =
-					await ConversationModel.findById( contact.conversationId );
-		
+					await ConversationModel.findById( conversationId );
+
+				if ( !conversation ) {
+					return responseError( res, 'Conversation resource not found', 404 );
+				}
+
+				if (conversation.type === 'group' ) {
+					const group = await GroupModel.findOne( { conversationId } );
+					const groupId = group._id.toString();
+					const { user } = req;
+					const userGroup = user.groups.find(
+							group => group.toString() === groupId
+						);
+
+					if ( !userGroup ) {
+						return responseError(
+							res,
+							'You can not access to this resource',
+							409
+						);
+					}
+
+					const userId = user._id.toString();
+					const userGroupData = group.participants.find(
+						participant => participant.userId.toString() === userId
+					);
+
+					conversation.messages =
+						conversation.messages.filter( message =>
+							message.createdAt >= userGroupData.joinedAt );
+				} else {
+					const contact = req.user.contacts.find(
+							contact => contact.conversationId.toString() === conversationId
+						);
+
+					if ( !contact ) {
+						return responseError(
+							res,
+							'You can not access to this resource',
+							409
+						);
+					}
+				}
+
 				res.send( conversation );
 			} );
 			app.get( '/groups', async ( req, res ) => {

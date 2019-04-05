@@ -272,6 +272,8 @@ class Sidebar extends React.Component {
 					submitButton={ groupModal.submitButton }
 					cancelButton={ groupModal.cancelButton }
 					// submitButton='Create'
+					disableSubmitButton={ this.state.participants.length === 0 ||
+						this.state.name.length < 0 }
 					submitHandler={ this.handleSubmitGroupRequest }
 				>
 					<Form>
@@ -313,6 +315,7 @@ class Sidebar extends React.Component {
 					submitButton={ friendModal.submitButton }
 					cancelButton={ friendModal.cancelButton }
 					// submitButton='Send Invitation'
+					disableSubmitButton={ this.state.value.length === 0 }
 					submitHandler={ this.handleSubmitFriendRequest }
 				>
 					{/* <form>

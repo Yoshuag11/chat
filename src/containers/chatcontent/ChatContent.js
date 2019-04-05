@@ -196,6 +196,7 @@ class ChatContent extends React.Component {
 					submitButton={ modal.submitButton }
 					// submitButton='Add'
 					cancelButton={ modal.cancelButton }
+					disableSubmitButton={ this.state.participants.length === 0 }
 					// submitButton='Send Invitation'
 					submitHandler={ handleSubmit }
 				>

@@ -26,7 +26,8 @@ class MyModal extends React.Component {
 			title = 'title',
 			submitButton = 'OK',
 			cancelButton = 'Cancel',
-			submitHandler = () => {}
+			submitHandler = () => {},
+			disableSubmitButton = true
 		} = this.props;
 		return (
 			<Modal show={ showModal } onHide={ handleModal }>
@@ -46,7 +47,11 @@ class MyModal extends React.Component {
 					<Button
 						// onClick={ this.handleSubmit }
 						onClick={ submitHandler }
-						variant='primary'>{ submitButton }</Button>
+						variant='primary'
+						disabled={ disableSubmitButton }
+					>
+						{ submitButton }
+					</Button>
 				</Modal.Footer>
 			</Modal>
 		);

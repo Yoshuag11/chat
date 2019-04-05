@@ -42,7 +42,7 @@
 	},
 	"chatContent": {
 		"modal": {
-			"title": "Add participant",
+			"title": "Add participants",
 			"submitButton": "Add",
 			"cancelButton": "Cancel",
 			"participantsLabel": "Select participants"

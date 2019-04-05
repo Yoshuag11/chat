@@ -138,6 +138,7 @@ function* sendRequest ( path = '', method = 'GET', payload = {} ) {
 	const response = yield fetch( `${ apiHost }/${ path }`, options );
 
 	if ( response.status === 401 ) {
+		console.log( 'unauthorized' );
 		// yield put( setUser( null ) );
 		// yield put( authorize( false ) );
 		// yield put( closeSocket() );
@@ -200,10 +201,7 @@ function* createGroupConversation ( payload ) {
 		}
 	}
 }
-// function* fetchMessages ( conversationId ) {
 function* fetchMessages ( payload ) {
-	console.log( 'about to fetch messages' );
-	console.log( 'conversationId', payload.conversationId );
 	try {
 		const response = yield sendRequest( `conversation/${ payload.conversationId }` );
 
@@ -254,19 +252,23 @@ function* fetchGroups () {
 	}
 }
 function* asyncAuthorize ( { email, password } ) {
-	const resp = yield sendRequest( 'authorize', 'POST', { email, password } );
-	const responseOK = resp.ok;
-	let user;
+	try {
+		const resp = yield sendRequest( 'authorize', 'POST', { email, password } );
+		const okResponse = resp.ok;
 
-	if ( responseOK ) {
-		user = yield resp.json();
-	} else {
-		user = null;
+		yield put( authorize( okResponse ) );
+
+		if ( resp.ok ) {
+			const user = yield resp.json();
+
+			yield put( setUser( user ) );
+			yield fetchGroups();
+		}
+	} catch ( error ) {
+		// console.log( 'here on error' );
+		// throw error;
+		console.log( error );
 	}
-
-	yield put( authorize( responseOK ) );
-	yield put( setUser( user ) );
-	yield fetchGroups();
 }
 function* fetchUser () {
 	console.log( '********* fetchUser *********')
